@@ -1,0 +1,25 @@
+# Changes here will be overwritten by Copier
+_commit: 2e4f7d0
+_src_path: gh:34j/pypackage-template
+add_me_as_contributor: false
+cli_name: biem-helmholtz-sphere
+copyright_year: '2025'
+documentation: true
+email: 34j.95a2p@simplelogin.com
+full_name: ultrasphere-dev
+github_app_installation_ids: ''
+github_username: ultrasphere-dev
+has_cli: true
+initial_commit: false
+is_django_package: false
+open_source_license: MIT
+open_with_editor: false
+package_name: biem_helmholtz_sphere
+project_name: biem-helmholtz-sphere
+project_short_description: Acoustic scattering from multiple n-spheres in NumPy /
+    PyTorch
+project_slug: biem-helmholtz-sphere
+run_uv_sync: false
+setup_github: false
+setup_pre_commit: false
+
