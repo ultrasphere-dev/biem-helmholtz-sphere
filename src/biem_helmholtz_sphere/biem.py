@@ -22,12 +22,8 @@ class BIEMResult:
     uscateach: Array
     """The scattered field of each sphere.
     First dimension is for the spheres."""
-    uscatd: Array
-    """The directional derivative to x of the scattered field."""
     uin: Array
     """The incident field."""
-    uind: Array
-    """The directional derivative to x of the incident field."""
     uscatfar: Array
     """The far-field pattern of the scattered field."""
     uscatfareach: Array
