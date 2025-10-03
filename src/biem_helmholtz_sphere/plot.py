@@ -6,7 +6,7 @@ import plotly.express as px
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
-from .biem import BIEMResultCalculator
+from .biem import BIEMResultCalculator, biem_u
 
 
 def plot_biem(
@@ -71,7 +71,7 @@ def plot_biem(
         defaultdict(lambda: xp.array(0)[None, None], {xaxis: x, yaxis: y})
     )
     cartesian = c.to_cartesian(spherical, as_array=True)
-    ures = biem_res(cartesian)
+    ures = biem_u(biem_res, cartesian)
 
     # time
     t = xp.arange(n_t)[:, None, None] / n_t

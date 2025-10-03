@@ -2,15 +2,22 @@ from typing import Literal
 
 
 import panel as pn
-from array_api._2024_12 import Array
+from array_api._2024_12 import Array, ArrayNamespaceFull
+from ultrasphere import create_from_branching_types
 from .biem import biem
 from .plot import plot_biem
 
-
+from array_api_compat import numpy as np
+from array_api_compat import torch
 
 def serve() -> None:
     """Serve panel app."""
+
+    xp: ArrayNamespaceFull = np
     # coordinates
+    backendw = pn.widgets.ToggleGroup(
+        name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
+    )
     dw = pn.widgets.IntSlider(name="Number of dimensions", value=2, start=2, end=7)
     ctypew = pn.widgets.ToggleGroup(
         name="Coordinates",
@@ -38,27 +45,6 @@ def serve() -> None:
         k_imw,
         etaw,
         force_matrixw,
-    )
-
-    # SS-H
-    num_vectorsw = pn.widgets.IntSlider(
-        name="Number of vectors", value=10, start=1, end=20
-    )
-    max_orderw = pn.widgets.IntSlider(name="Max order", value=20, start=1, end=50)
-    circle_n_pointsw = pn.widgets.IntSlider(
-        name="Circle n points", value=256, start=1, end=1024
-    )
-    circle_center_rew = pn.widgets.FloatInput(name="Circle center (Re)", value=0)
-    circle_center_imw = pn.widgets.FloatInput(name="Circle center (Im)", value=0)
-    circle_radiusw = pn.widgets.FloatInput(name="Circle radius", value=1)
-    g_ssh = pn.WidgetBox(
-        "## SS-H",
-        num_vectorsw,
-        max_orderw,
-        circle_n_pointsw,
-        circle_center_rew,
-        circle_center_imw,
-        circle_radiusw,
     )
 
     # plot
@@ -109,6 +95,16 @@ def serve() -> None:
 
     progressw = pn.widgets.Progress(name="Progress", value=0, max=100)
 
+    @pn.depends(backendw.param.value)
+    def update_backend(backend: str) -> None:
+        nonlocal xp
+        if backend == "numpy":
+            xp = np
+        elif backend == "torch":
+            xp = torch
+        else:
+            raise ValueError(f"Unknown backend: {backend}")
+
     @pn.depends(dw.param.value, ctypew.param.value)
     def update_custom(d: int, ctype: str) -> None:
         if ctype == "custom":
@@ -141,7 +137,7 @@ def serve() -> None:
     @pn.depends(ccustomw.param.value)
     def update_d_from_custom(cstr: str) -> None:
         if ctypew.value == "custom":
-            d = SphericalCoordinates.from_branching_types(cstr).c_ndim
+            d = create_from_branching_types(cstr).c_ndim
             if dw.value != d:
                 dw.value = d
 
@@ -183,7 +179,6 @@ def serve() -> None:
         etaw.param.value,
         force_matrixw.param.value,
         plot_whichw.param.value,
-        plot_derw.param.value,
         radiuscenterw.param.value,
         n_endw.param.value,
         n_plotw.param.value,
@@ -200,7 +195,6 @@ def serve() -> None:
         eta: float,
         force_matrix: bool,
         plot_which: list[str],
-        plot_der: bool,
         radiuscenter:Array,
         n_end: int,
         n_plot: int,
@@ -209,13 +203,13 @@ def serve() -> None:
         xaxis: int,
         yaxis: int,
         kind: Literal["inner", "outer"],
-    ) -> pn.pane.Pane:
+    ) -> pn.pane.Pane | None:
         if k_im != 0:
             k = complex(k_re, k_im)
         else:
             k = k_re
         progressw.value = 0
-        c = SphericalCoordinates.from_branching_types(cstr)
+        c = create_from_branching_types(cstr)
         d = c.c_ndim
         radiuscenter = xp.asarray(radiuscenter)
         if radiuscenter.shape[1] != d + 1:
@@ -264,7 +258,6 @@ def serve() -> None:
             progressw,
             g_coordinates,
             g_calculation,
-            g_ssh,
             g_plot,
             g_download,
         ),
