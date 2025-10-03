@@ -2,13 +2,10 @@ from typing import Literal
 
 
 import panel as pn
-from xp importArray
-from torchsphharm.coordinates import SphericalCoordinates
-
+from array_api._2024_12 import Array
 from .biem import biem
 from .plot import plot_biem
 
-xp.set_backend("numpy")
 
 
 def serve() -> None:

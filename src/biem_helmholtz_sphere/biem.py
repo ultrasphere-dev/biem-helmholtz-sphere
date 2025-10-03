@@ -10,13 +10,15 @@ from array_api_compat import array_namespace
 from batch_tensorsolve import btensorsolve
 from ultrasphere import (
     SphericalCoordinates,
-    TCartesian,
-    TSpherical,
     potential_coef,
     shn1,
     sjv,
 )
+from typing import TypeVar
 
+
+TCartesian = TypeVar("TCartesian")
+TSpherical = TypeVar("TSpherical")
 
 class BIEMKwargs(TypedDict):
     """The kwargs for the BIEM."""
@@ -355,10 +357,11 @@ def biem(
         center_to_add = centers[:, ..., None, :]
         # [..., B, B', harm, harm']
         translation_coef = ush.harmonics_translation_coef(
+            c,
             c.from_cartesian(center_current - center_to_add),  # ?
             n_end=n_end,
             n_end_add=n_end,
-            condon_shortley_phase=False,
+            phase=ush.Phase(0),
             k=k[..., None, None],
             is_type_same=False,
         )
@@ -532,16 +535,12 @@ def biem_u(
     # [...(first), B, harm1, ..., harmN]
     # -> [...(x), ...(first), B, harm1, ..., harmN]
     density_ = res.density[(None,) * ndim_x + (...,)]
-    # [...(x), ...(first), B]
-    spherical_no_r: dict[TSpherical, Array] = {
-        k: v for k, v in spherical.items() if k != "r"
-    }
     # [harm1, ..., harmN]
     Y = ush.harmonics(
         c,
-        spherical_no_r,
+        spherical,
         n_end=n_end,
-        condon_shortley_phase=False,
+        phase=ush.Phase(0),
         expand_dims=True,
         concat=True,
     )

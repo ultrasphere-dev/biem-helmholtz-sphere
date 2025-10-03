@@ -38,6 +38,12 @@ urls.documentation = "https://biem-helmholtz-sphere.readthedocs.io"
 urls.repository = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere"
 scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 
+[project.optional-dependencies]
+cli = [
+    "panel>=1.8.1",
+    "plotly>=6.3.1",
+]
+
 [dependency-groups]
 dev = [
   "pytest>=8,<9",
