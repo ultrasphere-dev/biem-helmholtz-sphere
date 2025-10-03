@@ -179,28 +179,37 @@ def _check_biem_inputs(
 
 
 # [..., B, harm1, ..., harmN]
-def uin_(x: Array, with_ball: bool = False) -> tuple[Array, Array | None]:
-    # x is [v, ...(points), ...(first), B] or [v, ...(x), ...(first)]
-    # if uin is a function, call it
-    if isinstance(uin, Callable):  # type: ignore
-        return uin(x), None
+def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
+    r"""Plane wave.
 
-    # else assume incident field is a plane wave
-    # and uin is the direction of the plane wave
+    $$
+    d := \frac{\text{direction}}{\|\text{direction}\|}
+    $$
+    $$
+    u (x) := e^{i k d \cdot x}
+    $$
 
-    # normalize direction
-    uin_: Array = uin
-    uin_ = xp.stack([uin_[e_node] for e_node in c.e_nodes], axis=0)
-    d = uin_ / xp.vector_norm(uin_, axis=0)
-    # [..., ...(first), B]
-    ip = xp.einsum("v,v...->...", d, x)
-    k_ = k[..., None] if with_ball else k
-    uin_v = xp.exp(1j * k_ * ip)
-    # ∂e^{ikd.x}/∂|x| = x/|x|.ikde^{ikd.x}
-    duindr_v = 1j * k_ * ip * uin_v
-    # in some definitions we need to apply `/ xp.vector_norm(x, axis=0)``
-    # although this would not be well defined for x=0
-    return uin_v, duindr_v
+    Parameters
+    ----------
+    k : Array
+        The wavenumber of shape (...).
+    direction : Array
+        The direction of the plane wave of shape (c.c_ndim, ...).
+        
+        Will be normalized.
+
+    Returns
+    -------
+    Callable[[Array], Array]
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        returns the incident field of shape (...(any), ...)
+    """
+    xp = array_namespace(k, direction)
+    direction = direction / xp.linalg.vector_norm(direction, axis=0, keepdims=True)
+    def inner(x: Array, /) -> Array:
+        ip = xp.sum(direction[..., None] * x, axis=0)
+        return xp.exp(1j * k * ip)
+    return inner
 
 
 def biem(
@@ -256,8 +265,11 @@ def biem(
     ----------
     c : SphericalCoordinates[TSpherical, TCartesian]
         The spherical coordinates system.
-    uin : Callable[Array, Array ]
-        The incident field / e^(-iωx). (not e^(iωx))
+    uin : Callable[[Array], Array]
+        The incident field.
+
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        should return the incident field of shape (...(any), ...)
 
         Must satisfy the Helmholtz equation with wavenumber k.
     centers : Array
@@ -293,22 +305,18 @@ def biem(
     # ...(x).ndim
     ndim_first = k.ndim
 
-    # []
     d = xp.asarray(c.c_ndim)
     n_spheres = radii.shape[-1]
 
     # boundary condition
     def f(spherical: Mapping[TSpherical, Array]) -> Array:
-        # [v, ..., ...(first), B]
+        # (c_ndim, ...(f), B, ...)
         x = c.to_cartesian(spherical, as_array=True)[
-            (...,) + (None,) * (ndim_first + 1)
+            (...,) + (None,) * (1 + ndim_first)
         ]
-        x += centers[
-            (slice(None),) + (None,) * c.s_ndim + (slice(None),) * (ndim_first + 1)
-        ]  # x - c_i
-        return -1.0 * uin_(x, with_ball=True)[0]
-
-    # [..., B, harm1, ..., harmN]
+        x += centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]  # x - c_i
+        return -uin(x)[0]
+    # (B, ..., harm)
     f_expansion = ush.expand(
         c,
         f,
@@ -317,16 +325,18 @@ def biem(
         n=n_end,
         condon_shortley_phase=False,
     )
-
+    # (..., B, harm)
+    f_expansion = xp.moveaxis(f_expansion, 0, -2)
+    
     # compute SL and DL, [..., B, harm1, ..., harmN]
     # (sizes except for B and harm_root are 1)
-    use_matrix = n_spheres > 1 or force_matrix
+    use_matrix = n_spheres is None or n_spheres > 1 or force_matrix
 
     # compute a
     if not use_matrix:
         # simply divide by the potential coefficients
         # [harm1, ..., harmN] -> [..., B=1, harm1, ..., harmN]
-        n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True)[
+        n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True, xp=xp)[
             (None,) * (ndim_first + 1) + (...,)
         ]
         S_coef = potential_coef(
@@ -373,10 +383,10 @@ def biem(
         ball_to_add = xp.arange(n_spheres)[
             (None,) * (ndim_first) + (None, slice(None), None, None)
         ]
-        # (..., B) -> (..., B, B', harm, harm')
-        radius_current = radii[..., :, None, None, None]
-        # (..., B') -> (..., B, B', harm, harm')
-        radius_to_add = radii[..., None, :, None, None]
+        # (..., B) -> (..., B, B')
+        radius_current = radii[..., :, None]
+        # (..., B') -> (..., B, B')
+        radius_to_add = radii[..., None, :]
         # Not flattened
         n_to_add = ush.index_array_harmonics(c, c.root, n_end=n_end)[
             (None,) * (ndim_first + 2 + c.s_ndim) + (slice(None),) * c.s_ndim
@@ -403,44 +413,19 @@ def biem(
         SD_coef = D_coef - 1j * eta[(...,) + (None,) * (2 * c.s_ndim + 2)] * S_coef
         SD_coef = ush.flatten_harmonics(c, SD_coef)
 
-        n_current_all = ush.index_array_harmonics_all(
-            c, n_end=n_end, expand_dims=True, as_array=True
-        )[
-            (slice(None),)
-            + (None,) * (ndim_first + 2)
-            + (slice(None),) * c.s_ndim
-            + (None,) * c.s_ndim
-        ]
-        n_to_add_all = ush.index_array_harmonics_all(
-            c, n_end=n_end, expand_dims=True, as_array=True
-        )[
-            (slice(None),)
-            + (None,) * (ndim_first + 2 + c.s_ndim)
-            + (slice(None),) * c.s_ndim
-        ]
+        # ([..., B, B', harm, harm')
         A = SD_coef * xp.where(
             ball_current == ball_to_add,
-            xp.where(
-                (n_current_all == n_to_add_all).all(axis=0),
-                shn1(
-                    n_to_add,
-                    d,
-                    k[(...,) + (None,) * (4)] * radius_current,
-                ),
-                xp.asarray(0),
+            xpx.create_diagonal(
+                ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="singular")
             ),
             translation_coef
-            * sjv(
-                n_to_add, d, k[(...,) + (None,) * (2 * c.s_ndim + 2)] * radius_current
-            ),
+            * ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="regular")[..., None, :]
         )
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
         matrix = xp.moveaxis(A, -2 - c.s_ndim, -1 - c.s_ndim)
         # [..., B, harm, B', harm'] and [..., B, harm]
         density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
-
-    if density.ndim != ndim_first + 1 + c.s_ndim:
-        raise AssertionError(f"{density.ndim=} is not {ndim_first=} + 1 + {c.s_ndim=}")
 
     return BIEMResultCalculator(
         c=c,

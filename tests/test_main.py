@@ -1,17 +1,18 @@
 from ultrasphere import create_from_branching_types
-from biem_helmholtz_sphere.biem import biem
+from biem_helmholtz_sphere.biem import biem, plane_wave
 from array_api._2024_12 import ArrayNamespaceFull
-def test_biem_batch(xp: ArrayNamespaceFull) -> None:
-    c = create_from_branching_types("a")
-    # number of dimensions: 2
-    # batch shape: (3,)
-    # number of spheres: 4
-    biem(
+import pytest
+
+@pytest.mark.parametrize("branching_types", ["a", "ba"])
+def test_biem(xp: ArrayNamespaceFull, branching_types: str) -> None:
+    c = create_from_branching_types(branching_types)
+    calc = biem(
         c,
-        xp.asarray([1.0, 0.0]),
-        k=xp.asarray([1, 0.5, 0.3]),
+        plane_wave(xp.asarray(1.0), xp.asarray((1,) + (0,) * (c.c_ndim - 1))),
+        k=xp.asarray(1.0),
         n_end=3,
-        eta=xp.asarray([1, 0.1, 0.3]),
-        centers=xp.asarray([[[0.0, 2.0], [0.0, -2.0], [4.0, 3.0], [5.0, 0.0]]]),
-        radii=xp.asarray([[1.0, 1.0, 0.3, 0.2]]),
+        eta=None,
+        centers=xp.asarray(((1,) + (0,) * c.s_ndim, (-1,) + (0,) * c.s_ndim)),
+        radii=xp.asarray((0.5, 0.5)),
+        kind="outer",
     )
