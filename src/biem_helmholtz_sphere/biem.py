@@ -205,9 +205,22 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
         returns the incident field of shape (...(any), ...)
     """
     xp = array_namespace(k, direction)
+    try:
+        xpx.broadcast_shapes(k.shape, direction.shape[1:])
+    except Exception as e:
+        raise ValueError(
+            "Shapes of k and direction[1:] "
+            "are not broadcastable\n"
+            f"{tuple(k.shape)=}\n"
+            f"{tuple(direction.shape)=}"
+        ) from e
+    if direction.ndim != k.ndim + 1:
+        raise ValueError(
+            f"{direction.ndim=} is not {k.ndim + 1=}"
+        )
     direction = direction / xp.linalg.vector_norm(direction, axis=0, keepdims=True)
     def inner(x: Array, /) -> Array:
-        ip = xp.sum(direction[..., None] * x, axis=0)
+        ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
         return xp.exp(1j * k * ip)
     return inner
 
@@ -300,7 +313,7 @@ def biem(
     xp = array_namespace(centers, radii, k, eta)
 
     # [..., B, v] -> [v, ..., B]
-    centers = centers.moveaxis(-1, 0)
+    centers = xp.moveaxis(centers, -1, 0)
 
     # ...(x).ndim
     ndim_first = k.ndim
@@ -314,8 +327,9 @@ def biem(
         x = c.to_cartesian(spherical, as_array=True)[
             (...,) + (None,) * (1 + ndim_first)
         ]
-        x += centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]  # x - c_i
-        return -uin(x)[0]
+        x = x + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]  # x - c_i
+        return -uin(x)
+    
     # (B, ..., harm)
     f_expansion = ush.expand(
         c,
@@ -323,7 +337,8 @@ def biem(
         does_f_support_separation_of_variables=False,
         n_end=n_end,
         n=n_end,
-        condon_shortley_phase=False,
+        phase=ush.Phase(0),
+        xp=xp
     )
     # (..., B, harm)
     f_expansion = xp.moveaxis(f_expansion, 0, -2)
@@ -388,33 +403,32 @@ def biem(
         # (..., B') -> (..., B, B')
         radius_to_add = radii[..., None, :]
         # Not flattened
-        n_to_add = ush.index_array_harmonics(c, c.root, n_end=n_end)[
-            (None,) * (ndim_first + 2 + c.s_ndim) + (slice(None),) * c.s_ndim
+        n_to_add = ush.index_array_harmonics(c, c.root, n_end=n_end, xp=xp)[
+            (None,) * (ndim_first + 3) + (slice(None),) * c.s_ndim
         ]
         S_coef = potential_coef(
             n_to_add,
             d,
-            k[(...,) + (None,) * (2 * c.s_ndim + 2)],
-            y_abs=radius_to_add,
-            x_abs=radius_to_add,
+            k[(...,) + (None,) * (3 + c.s_ndim)],
+            y_abs=radius_to_add[(...,) + (None,) * (1 + c.s_ndim)],
+            x_abs=radius_to_add[(...,) + (None,) * (1 + c.s_ndim)],
             derivative="S",
             for_func="solution",
         )
         D_coef = potential_coef(
             n_to_add,
             d,
-            k[(...,) + (None,) * (2 * c.s_ndim + 2)],
-            y_abs=radius_to_add,
-            x_abs=radius_to_add,
+            k[(...,) + (None,) * (3 + c.s_ndim)],
+            y_abs=radius_to_add[(...,) + (None,) * (1 + c.s_ndim)],
+            x_abs=radius_to_add[(...,) + (None,) * (1 + c.s_ndim)],
             derivative="D",
             limit=False,
             for_func="solution",
         )
-        SD_coef = D_coef - 1j * eta[(...,) + (None,) * (2 * c.s_ndim + 2)] * S_coef
-        SD_coef = ush.flatten_harmonics(c, SD_coef)
-
+        SD_coef = D_coef - 1j * eta[(...,) + (None,) * (3 + c.s_ndim)] * S_coef
+        SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
         # ([..., B, B', harm, harm')
-        A = SD_coef * xp.where(
+        matrix = SD_coef * xp.where(
             ball_current == ball_to_add,
             xpx.create_diagonal(
                 ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="singular")
@@ -423,7 +437,7 @@ def biem(
             * ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="regular")[..., None, :]
         )
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
-        matrix = xp.moveaxis(A, -2 - c.s_ndim, -1 - c.s_ndim)
+        matrix = xp.moveaxis(matrix, -3, -2)
         # [..., B, harm, B', harm'] and [..., B, harm]
         density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
 

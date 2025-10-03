@@ -30,7 +30,7 @@ dependencies = [
   "rich>=10",
   "typer>=0.15,<1",
   "types-array-api>=1.1.4",
-  "ultrasphere-harmonics>=1.0.0",
+  "ultrasphere-harmonics>=1.2.0",
 ]
 urls."Bug Tracker" = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere/issues"
 urls.Changelog = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere/blob/main/CHANGELOG.md"
@@ -42,6 +42,7 @@ scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 cli = [
     "panel>=1.8.1",
     "plotly>=6.3.1",
+    "torch>=2.8.0",
 ]
 
 [dependency-groups]
