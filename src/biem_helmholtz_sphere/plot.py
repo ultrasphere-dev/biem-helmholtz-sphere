@@ -2,7 +2,6 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
 
-
 import plotly.express as px
 from pandas import DataFrame
 from plotly.graph_objects import Figure
@@ -112,7 +111,7 @@ def plot_biem(
     title += r"<br>"
     title += (
         f"{c.c_ndim:g}D, Type {c.branching_types_expression_str} coordinates, "
-        f"Max Degree={biem_res.n_end-1:g}, k={biem_res.k.item():g}, "
+        f"Max Degree={biem_res.n_end - 1:g}, k={biem_res.k.item():g}, "
         f"η={biem_res.eta.item():g}"
     )
 

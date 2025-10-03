@@ -1,36 +1,41 @@
 import warnings
-from collections.abc import Mapping
-from typing import Callable, Literal, NotRequired, Protocol, TypedDict
+from collections.abc import Callable, Mapping
+from typing import Literal, NotRequired, Protocol, TypedDict
 
-import attrs
-
-from attrs import frozen
-from batch_tensorsolve import btensorsolve
-from array_api._2024_12 import Array,Array
-from ultrasphere import SphericalCoordinates, TCartesian, TSpherical
-
-from ultrasphere import potential_coef, shn1, sjv
 import array_api_extra as xpx
-from array_api_compat import array_namespace
+import attrs
 import ultrasphere_harmonics as ush
+from array_api._2024_12 import Array
+from array_api_compat import array_namespace
+from batch_tensorsolve import btensorsolve
+from ultrasphere import (
+    SphericalCoordinates,
+    TCartesian,
+    TSpherical,
+    potential_coef,
+    shn1,
+    sjv,
+)
+
+
 class BIEMKwargs(TypedDict):
     """The kwargs for the BIEM."""
 
-    centers: Array 
+    centers: Array
     """The centers of the spheres.
     The first dimension corresponds to the vector of the centers.
     The second dimension corresponds to the number of the spheres.
     [..., B, v]"""
-    radii: Array 
+    radii: Array
     """The radii of the spheres.
     The first dimension corresponds to the number of the spheres.
     [..., B]"""
-    k: Array 
+    k: Array
     """The wavenumber.
     [...]"""
     n_end: int
     """The maximum degree of the spherical harmonics expansion."""
-    eta: NotRequired[Array ]
+    eta: NotRequired[Array]
     """The decoupling parameter, by default 1.
     [...]"""
     kind: NotRequired[Literal["inner", "outer"]]
@@ -42,9 +47,10 @@ class BIEMKwargs(TypedDict):
 
 class BIEMResultCalculatorProtocol(Protocol):
     """Callable that computes the BIEMResult at the given cartesian coordinates."""
+
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: Callable[[Array], Array ] | Array
+    uin: Callable[[Array], Array] | Array
     """The incident field."""
     centers: Array
     """The centers of the spheres."""
@@ -64,6 +70,7 @@ class BIEMResultCalculatorProtocol(Protocol):
     matrix: Array | None = None
     """The flattened matrix of the BIEM
     of shape [..., B, harm, B', harm']."""
+
 
 @attrs.frozen(kw_only=True)
 class BIEMResultCalculator(BIEMResultCalculatorProtocol):
@@ -71,7 +78,7 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol):
 
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: Callable[[Array], Array ] | Array
+    uin: Callable[[Array], Array] | Array
     """The incident field."""
     centers: Array
     """The centers of the spheres."""
@@ -92,13 +99,15 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol):
     """The flattened matrix of the BIEM
     of shape [..., B, harm, B', harm']."""
 
+
 def _check_biem_inputs(
     c: SphericalCoordinates[TSpherical, TCartesian],
-    centers: Array ,
-    radii: Array ,
-    k: Array ,
+    centers: Array,
+    radii: Array,
+    k: Array,
     eta: Array | None = None,
-    /):
+    /,
+):
     xp = array_namespace(centers, radii, k, eta)
 
     # convert to array
@@ -124,7 +133,7 @@ def _check_biem_inputs(
         )
     if xp.any((xp.imag(k) < 0) | (eta * xp.real(k) < 0)):
         warnings.warn(
-            "The solution may be incorrect" "if not (Im k >= 0 and eta Re k >= 0).",
+            "The solution may be incorrectif not (Im k >= 0 and eta Re k >= 0).",
             UserWarning,
             stacklevel=2,
         )
@@ -163,7 +172,7 @@ def _check_biem_inputs(
             f"The last dimension of centers must be {c.c_ndim=}, "
             f"but got {centers.shape[-1]}"
         )
-    
+
     return centers, radii, k, eta
 
 
@@ -190,13 +199,15 @@ def uin_(x: Array, with_ball: bool = False) -> tuple[Array, Array | None]:
     # in some definitions we need to apply `/ xp.vector_norm(x, axis=0)``
     # although this would not be well defined for x=0
     return uin_v, duindr_v
+
+
 def biem(
     c: SphericalCoordinates[TSpherical, TCartesian],
     uin: Callable[[Array], Array],
     *,
-    centers: Array ,
-    radii: Array ,
-    k: Array ,
+    centers: Array,
+    radii: Array,
+    k: Array,
     n_end: int,
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
@@ -247,11 +258,11 @@ def biem(
         The incident field / e^(-iωx). (not e^(iωx))
 
         Must satisfy the Helmholtz equation with wavenumber k.
-    centers : Array 
+    centers : Array
         The centers of the spheres of shape (..., B, c.c_ndim).
-    radii : Array 
+    radii : Array
         The radii of the spheres of shape (..., B).
-    k : Array 
+    k : Array
         The wavenumber of shape (...).
     n_end : int
         The maximum degree of the spherical harmonics expansion.
@@ -271,9 +282,7 @@ def biem(
         Each field has shape [...(x), ...(first), harm1, ..., harmN]
 
     """
-    centers, radii, k, eta = _check_biem_inputs(
-        c, centers, radii, k, eta
-    )
+    centers, radii, k, eta = _check_biem_inputs(c, centers, radii, k, eta)
     xp = array_namespace(centers, radii, k, eta)
 
     # [..., B, v] -> [v, ..., B]
@@ -355,17 +364,11 @@ def biem(
         )
         # (B,) -> (..., B, B', harm, harm')
         ball_current = xp.arange(n_spheres)[
-            (None,) * (ndim_first)
-            + (
-                slice(None),
-                None, None, None)
+            (None,) * (ndim_first) + (slice(None), None, None, None)
         ]
         # (B') -> (..., B, B', harm, harm')
         ball_to_add = xp.arange(n_spheres)[
-            (None,) * (ndim_first)
-            + (
-                None,
-                slice(None), None, None)
+            (None,) * (ndim_first) + (None, slice(None), None, None)
         ]
         # (..., B) -> (..., B, B', harm, harm')
         radius_current = radii[..., :, None, None, None]
@@ -396,17 +399,17 @@ def biem(
         )
         SD_coef = D_coef - 1j * eta[(...,) + (None,) * (2 * c.s_ndim + 2)] * S_coef
         SD_coef = ush.flatten_harmonics(c, SD_coef)
-        
-        n_current_all = ush.index_array_harmonics_all(c,
-            n_end=n_end, expand_dims=True, as_array=True
+
+        n_current_all = ush.index_array_harmonics_all(
+            c, n_end=n_end, expand_dims=True, as_array=True
         )[
             (slice(None),)
             + (None,) * (ndim_first + 2)
             + (slice(None),) * c.s_ndim
             + (None,) * c.s_ndim
         ]
-        n_to_add_all = ush.index_array_harmonics_all(c,
-            n_end=n_end, expand_dims=True, as_array=True
+        n_to_add_all = ush.index_array_harmonics_all(
+            c, n_end=n_end, expand_dims=True, as_array=True
         )[
             (slice(None),)
             + (None,) * (ndim_first + 2 + c.s_ndim)
@@ -431,13 +434,10 @@ def biem(
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
         matrix = xp.moveaxis(A, -2 - c.s_ndim, -1 - c.s_ndim)
         # [..., B, harm, B', harm'] and [..., B, harm]
-        density = btensorsolve(
-            matrix, f_expansion, num_batch_axes=ndim_first
-        )
+        density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
 
     if density.ndim != ndim_first + 1 + c.s_ndim:
         raise AssertionError(f"{density.ndim=} is not {ndim_first=} + 1 + {c.s_ndim=}")
-
 
     return BIEMResultCalculator(
         c=c,
@@ -449,12 +449,13 @@ def biem(
         kind=kind,
         uin=uin,
         density=density,
-        matrix=matrix
+        matrix=matrix,
     )
 
 
-
-def biem_u(res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False) -> Array:
+def biem_u(
+    res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False
+) -> Array:
     """
     Return the scattered field at the given cartesian coordinates.
 
@@ -462,7 +463,7 @@ def biem_u(res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = Fal
     ----------
     res : BIEMResultCalculatorProtocol
         The result of the BIEM.
-    x : Array 
+    x : Array
         The cartesian coordinates.
     far_field : bool, optional
         Whether to compute the far field, by default False.
