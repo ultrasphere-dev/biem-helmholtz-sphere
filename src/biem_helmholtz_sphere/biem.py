@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Callable, Mapping
-from typing import Literal, NotRequired, Protocol, TypedDict
+from typing import Literal, NotRequired, Protocol, TypedDict, TypeVar
 
 import array_api_extra as xpx
 import attrs
@@ -11,14 +11,11 @@ from batch_tensorsolve import btensorsolve
 from ultrasphere import (
     SphericalCoordinates,
     potential_coef,
-    shn1,
-    sjv,
 )
-from typing import TypeVar
-
 
 TCartesian = TypeVar("TCartesian")
 TSpherical = TypeVar("TSpherical")
+
 
 class BIEMKwargs(TypedDict):
     """The kwargs for the BIEM."""
@@ -180,7 +177,8 @@ def _check_biem_inputs(
 
 # [..., B, harm1, ..., harmN]
 def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
-    r"""Plane wave.
+    r"""
+    Plane wave.
 
     $$
     d := \frac{\text{direction}}{\|\text{direction}\|}
@@ -195,7 +193,7 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
         The wavenumber of shape (...).
     direction : Array
         The direction of the plane wave of shape (c.c_ndim, ...).
-        
+
         Will be normalized.
 
     Returns
@@ -203,6 +201,7 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
     Callable[[Array], Array]
         Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
         returns the incident field of shape (...(any), ...)
+
     """
     xp = array_namespace(k, direction)
     try:
@@ -215,13 +214,15 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
             f"{tuple(direction.shape)=}"
         ) from e
     if direction.ndim != k.ndim + 1:
-        raise ValueError(
-            f"{direction.ndim=} is not {k.ndim + 1=}"
-        )
+        raise ValueError(f"{direction.ndim=} is not {k.ndim + 1=}")
     direction = direction / xp.linalg.vector_norm(direction, axis=0, keepdims=True)
+
     def inner(x: Array, /) -> Array:
-        ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
+        ip = xp.sum(
+            direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0
+        )
         return xp.exp(1j * k * ip)
+
     return inner
 
 
@@ -327,9 +328,17 @@ def biem(
         x = c.to_cartesian(spherical, as_array=True)[
             (...,) + (None,) * (1 + ndim_first)
         ]
-        x = x + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]  # x - c_i
+        x = (
+            x
+            + centers[
+                (slice(None),)
+                + (None,) * c.s_ndim
+                + (slice(None),)
+                + (None,) * ndim_first
+            ]
+        )  # x - c_i
         return -uin(x)
-    
+
     # (B, ..., harm)
     f_expansion = ush.expand(
         c,
@@ -338,11 +347,11 @@ def biem(
         n_end=n_end,
         n=n_end,
         phase=ush.Phase(0),
-        xp=xp
+        xp=xp,
     )
     # (..., B, harm)
     f_expansion = xp.moveaxis(f_expansion, 0, -2)
-    
+
     # compute SL and DL, [..., B, harm1, ..., harmN]
     # (sizes except for B and harm_root are 1)
     use_matrix = n_spheres is None or n_spheres > 1 or force_matrix
@@ -426,15 +435,29 @@ def biem(
             for_func="solution",
         )
         SD_coef = D_coef - 1j * eta[(...,) + (None,) * (3 + c.s_ndim)] * S_coef
-        SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
+        SD_coef = ush.flatten_harmonics(
+            c, SD_coef, n_end=n_end, include_negative_m=True
+        )
         # ([..., B, B', harm, harm')
         matrix = SD_coef * xp.where(
             ball_current == ball_to_add,
             xpx.create_diagonal(
-                ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="singular")
+                ush.harmonics_regular_singular_component(
+                    c,
+                    {"r": radius_current},
+                    n_end=n_end,
+                    k=k[..., None, None],
+                    type="singular",
+                )
             ),
             translation_coef
-            * ush.harmonics_regular_singular_component(c, {"r": radius_current}, n_end=n_end, k=k[..., None, None], type="regular")[..., None, :]
+            * ush.harmonics_regular_singular_component(
+                c,
+                {"r": radius_current},
+                n_end=n_end,
+                k=k[..., None, None],
+                type="regular",
+            )[..., None, :],
         )
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
         matrix = xp.moveaxis(matrix, -3, -2)
@@ -456,7 +479,11 @@ def biem(
 
 
 def biem_u(
-    res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False, per_ball: bool = False
+    res: BIEMResultCalculatorProtocol,
+    x: Array,
+    /,
+    far_field: bool = False,
+    per_ball: bool = False,
 ) -> Array:
     """
     Return the scattered field at the given cartesian coordinates.

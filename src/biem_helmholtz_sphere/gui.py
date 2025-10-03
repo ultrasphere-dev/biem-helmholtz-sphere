@@ -1,18 +1,17 @@
 from typing import Literal
 
-
 import panel as pn
 from array_api._2024_12 import Array, ArrayNamespaceFull
+from array_api_compat import numpy as np
+from array_api_compat import torch
 from ultrasphere import create_from_branching_types
+
 from .biem import biem
 from .plot import plot_biem
 
-from array_api_compat import numpy as np
-from array_api_compat import torch
 
 def serve() -> None:
     """Serve panel app."""
-
     xp: ArrayNamespaceFull = np
     # coordinates
     backendw = pn.widgets.ToggleGroup(
@@ -164,7 +163,7 @@ def serve() -> None:
             radiuscenterw.value = new
 
     @pn.depends(radiuscenterw.param.value)
-    def update_plot_which(radiuscenter:Array) -> None:
+    def update_plot_which(radiuscenter: Array) -> None:
         radiuscenter = xp.asarray(radiuscenter)
         old_options = plot_whichw.options
         new_options = ["uin"] + [f"uscat{i}" for i in range(radiuscenter.shape[0])]
@@ -195,7 +194,7 @@ def serve() -> None:
         eta: float,
         force_matrix: bool,
         plot_which: list[str],
-        radiuscenter:Array,
+        radiuscenter: Array,
         n_end: int,
         n_plot: int,
         n_t: int,
