@@ -13,65 +13,6 @@ from ultrasphere import potential_coef, shn1, sjv
 import array_api_extra as xpx
 from array_api_compat import array_namespace
 import ultrasphere_harmonics as ush
-@frozen(kw_only=True)
-class BIEMResult:
-    """The result of the Boundary Integral Equation Method (BIEM)."""
-
-    uscat: Array
-    """The scattered field."""
-    uscateach: Array
-    """The scattered field of each sphere.
-    First dimension is for the spheres."""
-    uin: Array
-    """The incident field."""
-    uscatfar: Array
-    """The far-field pattern of the scattered field."""
-    uscatfareach: Array
-    """The far-field pattern of the scattered field of each sphere.
-    First dimension is for the spheres."""
-
-
-class BIEMResultCalculatorProtocol(Protocol):
-    """Callable that computes the BIEMResult at the given cartesian coordinates."""
-
-    density: Array
-    """The density of the BIEM
-    of shape [..., B, harm1, ..., harmN]."""
-    density_flatten: Array | None
-    """The flattened density of the BIEM
-    of shape [..., B, harm]."""
-    density_flatten_flatten: Array | None
-    """The flattened density of the BIEM
-    of shape [..., B * harm]."""
-    matrix: Array | None
-    """The matrix of the BIEM
-    of shape [..., B, B', harm1, ..., harmN, harm1', ..., harmN']."""
-    matrix_flatten: Array | None
-    """The flattened matrix of the BIEM
-    of shape [..., B, harm, B', harm']."""
-    matrix_flatten_flatten: Array | None
-    """The flattened matrix of the BIEM
-    of shape [..., B * harm, B' * harm']."""
-
-    def __call__(self, x: Array ) -> BIEMResult:
-        """
-        Return the scattered field at the given cartesian coordinates.
-
-        Parameters
-        ----------
-        x : Array 
-            The cartesian coordinates.
-
-        Returns
-        -------
-        BIEMResult
-            The scattered field and incident field.
-            Each field has shape [...(x), ...(first), harm1, ..., harmN]
-
-        """
-        ...
-
-
 class BIEMKwargs(TypedDict):
     """The kwargs for the BIEM."""
 
@@ -99,6 +40,31 @@ class BIEMKwargs(TypedDict):
     even if there is only one sphere, by default False."""
 
 
+class BIEMResultCalculatorProtocol(Protocol):
+    """Callable that computes the BIEMResult at the given cartesian coordinates."""
+    c: SphericalCoordinates[TSpherical, TCartesian]
+    """The spherical coordinates system."""
+    uin: Callable[[Array], Array ] | Array
+    """The incident field."""
+    centers: Array
+    """The centers of the spheres."""
+    radii: Array
+    """The radii of the spheres."""
+    k: Array
+    """The wavenumber."""
+    n_end: int
+    """The maximum degree of the spherical harmonics expansion."""
+    eta: Array
+    """The decoupling parameter."""
+    kind: Literal["inner", "outer"]
+    """The kind of the scattering problem."""
+    density: Array | None = None
+    """The flattened density of the BIEM
+    of shape [..., B, harm]."""
+    matrix: Array | None = None
+    """The flattened matrix of the BIEM
+    of shape [..., B, harm, B', harm']."""
+
 @attrs.frozen(kw_only=True)
 class BIEMResultCalculator(BIEMResultCalculatorProtocol):
     """Callable that computes the BIEMResult at the given cartesian coordinates."""
@@ -125,182 +91,6 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol):
     matrix: Array | None = None
     """The flattened matrix of the BIEM
     of shape [..., B, harm, B', harm']."""
-
-    def __call__(self, x: Array ) -> BIEMResult:
-        """
-        Return the scattered field at the given cartesian coordinates.
-
-        Parameters
-        ----------
-        x : Array 
-            The cartesian coordinates.
-
-        Returns
-        -------
-        BIEMResult
-            The scattered field and incident field.
-            Each field has shape [...(x), ...(first), harm1, ..., harmN]
-
-        """
-        # center: [v, ...(first), B]
-        # solution_expansion: [...(first), B, harm1, ..., harmN]
-        c = self.c
-        n_end, _ = c.get_n_end_and_include_negative_m_from_expansion(self.density)
-        centers = self.centers
-        radii = self.radii
-        k = self.k
-        eta = self.eta
-        kind = self.kind
-        d = xp.array(c.c_ndim)
-        n_spheres = radii.shape[-1]
-        ndim_first = k.ndim
-
-        x = xp.stack([x[i] for i in range(c.c_ndim)], axis=0)
-        ndim_x = x.ndim - 1
-        # [v, ...(x)] -> [v, ...(x), ...(first), B]
-        x_ = x[(slice(None), ...) + (None,) * (ndim_first + 1)]
-        # [v, ...(x), ...(first), B] -> [...(x), ...(first), B]
-        spherical = c.from_cartesian(
-            x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)]
-        )
-        # [...(x), ...(first), B]
-        r = spherical["r"]
-        # [harm1, ..., harmN] -> [...(x), ...(first), B, harm1, ..., harmN]
-        n = c.index_array_harmonics(c.root, n_end=n_end, expand_dims=True)[
-            (None,) * r.ndim + (...,)
-        ]
-        # [...(x), ...(first), B, harm1, ..., harmN]
-        k_harm = k[(None,) * ndim_x + (...,) + (None,) * (c.s_ndim + 1)]
-        y_abs = radii[(None,) * ndim_x + (...,) + (None,) * c.s_ndim]
-        x_abs = r[(...,) + (None,) * c.s_ndim]
-        SL_coef_ = potential_coef(
-            n, d, k_harm, y_abs=y_abs, x_abs=x_abs, derivative="S", for_func="harmonics"
-        )
-        SL_coef_far_ = potential_coef(
-            n,
-            d,
-            k_harm,
-            y_abs=y_abs,
-            x_abs=x_abs,
-            derivative="S",
-            for_func="solution",
-        )
-        DL_coef_ = potential_coef(
-            n,
-            d,
-            k_harm,
-            y_abs=y_abs,
-            x_abs=x_abs,
-            derivative="D",
-            for_func="harmonics",
-            limit=False,
-        )
-        DL_coef_far_ = potential_coef(
-            n,
-            d,
-            k_harm,
-            y_abs=y_abs,
-            x_abs=x_abs,
-            derivative="D",
-            for_func="solution",
-            limit=False,
-        )
-        SD_coef_ = DL_coef_ - xp.array(1j) * eta * SL_coef_
-        SD_coef_far_ = DL_coef_far_ - xp.array(1j) * eta * SL_coef_far_
-        if n_spheres == 1:
-            SLD_coef_ = potential_coef(
-                n,
-                d,
-                k_harm,
-                y_abs=y_abs,
-                x_abs=x_abs,
-                derivative="D*",
-                for_func="harmonics",
-                limit=False,
-            )
-            DLD_coef_ = potential_coef(
-                n,
-                d,
-                k_harm,
-                y_abs=y_abs,
-                x_abs=x_abs,
-                derivative="N",
-                for_func="harmonics",
-            )
-            SDD_coef_ = DLD_coef_ - xp.array(1j) * eta * SLD_coef_
-        # [...(first), B, harm1, ..., harmN]
-        # -> [...(x), ...(first), B, harm1, ..., harmN]
-        density_ = self.density[(None,) * ndim_x + (...,)]
-        # [...(x), ...(first), B]
-        spherical_no_r: dict[TSpherical, Array] = {
-            k: v for k, v in spherical.items() if k != "r"
-        }
-        # [harm1, ..., harmN]
-        Y = c.harmonics(
-            spherical_no_r,
-            n_end=n_end,
-            condon_shortley_phase=False,
-            expand_dims=True,
-            concat=True,
-        )
-        # [...(x), ...(first), B, harm1, ..., harmN]
-        uscat = density_ * SD_coef_ * Y
-        uscatfarcoef = (
-            (-1j) ** n
-            / (1j * k_harm) ** ((d - 1) / 2)
-            * xp.exp(
-                1j
-                * k_harm
-                * xp.sum(
-                    # centers: [v, ...(first), B]
-                    # x: [v, ...(x), ...(first), B]
-                    x_[(...,) + (None,) * (c.s_ndim)]
-                    * -centers[
-                        (slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim
-                    ],
-                    axis=0,
-                )
-            )
-        )
-        uscatfar = density_ * SD_coef_far_ * Y * uscatfarcoef
-        # [...(x), ...(first), B, harm1, ..., harmN] -> [...(x), ...(first)]
-        uscateach = xp.sum(uscat, axis=tuple(range(-c.s_ndim, 0)))
-        uscatfareach = xp.sum(uscatfar, axis=tuple(range(-c.s_ndim, 0)))
-        uscat = xp.sum(uscateach, axis=-1)
-        uscatfar = xp.sum(uscatfareach, axis=-1)
-        if n_spheres == 1:
-            uscatd = density_ * SDD_coef_ * Y
-            # [...(x), ...(first), B, harm1, ..., harmN] -> [...(x), ...(first)]
-            uscatd = xp.sum(uscatd, axis=tuple(range(-c.s_ndim - 1, 0)))
-
-        # get uin
-        uin, uind = self.uin(x)
-        if uin.shape != uscat.shape:
-            raise AssertionError(f"{uin.shape=} != {uscat.shape=}")
-
-        # fill invalid regions with nan
-        for u in [uscat, uin, uscateach] + (
-            ([uscatd] + ([uind] if uind is not None else [])) if n_spheres == 1 else []
-        ):
-            if kind == "outer":
-                u[(r < radii).any(axis=-1)] = xp.nan
-            elif kind == "inner":
-                u[(r > radii).any(axis=-1)] = xp.nan
-            else:
-                raise ValueError(f"Invalid kind: {kind}")
-
-        uscateach = xp.moveaxis(uscateach, -1, 0)
-        uscatfareach = xp.moveaxis(uscatfareach, -1, 0)
-        # return results
-        return BIEMResult(
-            uscat=uscat,
-            uscateach=uscateach,
-            uscatd=uscatd if n_spheres == 1 else None,
-            uin=uin,
-            uind=uind if n_spheres == 1 else None,
-            uscatfar=uscatfar,
-            uscatfareach=uscatfareach,
-        )
 
 def _check_biem_inputs(
     c: SphericalCoordinates[TSpherical, TCartesian],
@@ -412,8 +202,42 @@ def biem(
     kind: Literal["inner", "outer"] = "outer",
     force_matrix: bool = False,
 ) -> BIEMResultCalculator:
-    """
+    r"""
     Boundary Integral Equation Method (BIEM) for the Helmholtz equation.
+
+    Let $d \in \mathbb{N} \setminus \lbrace 1 \rbrace$ be the dimension of the space, $k$ be the wave number, and $\mathbb{S}^{d-1} = \lbrace x \in \mathbb{R}^d \mid \|x\| = 1 \rbrace$ be a unit sphere in $\mathbb{R}^d$.
+
+    Asuume that $u_\text{in}$ is an incident wave satisfying the Helmholtz equation
+
+    $$
+    \Delta u_\text{in} + k^2 u_\text{in} = 0
+    $$
+
+    and scattered wave $u$ satisfies the following:
+
+    $$
+    \begin{cases}
+    \Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
+    \alpha u + \beta \grad u \dot n_x = -u_\text{in} \quad &x \in \mathbb{S}^{d-1} \\
+    \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}} \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad &\frac{x}{\|x\|} \in \mathbb{S}^{d-1}
+    \end{cases}
+    $$
+
+    $$
+    \newcommand\slc{\operatorname{slc}}
+    \newcommand\dlc{\operatorname{dlc}}
+    \newcommand\blc{\operatorname{blc}}
+    \slc_n (\rho) := i k^{d-2} rho^{d-1} j_n (k rho) \\
+    \dlc_n (\rho) := i k^{d-1} rho^{d-1} j_n' (k rho) \\
+    \blc_n (\rho) := \slc_n (rho) - i \eta \dlc_n (rho) \\
+    A_{bnpb'n'p'} := \blc_{n'} \times \begin{cases}
+    \delta_{n,n'} \delta_{p,p'} (\alpha h^{(1)}_n (k rho_b) + \beta h^{(1)'}_n (k rho_b)) & b = b' \\
+    (S|R)_{n,p,n',p'} (c_b - c_b') (\alpha j_n (k rho_b) + \beta j'_n (k rho_b)) & b \neq b'
+    \end{cases} \\
+    f_{bnp} := - \integral_{\partial B_b} u_{in} (x) Y_{n,p} (\hat{x - c_b}) dx
+    = - \integral_{S^{d-1}} u_{in} (c_b + rho_b \hat{y}) Y_{n,p} (\hat{y}) rho_b^{d-1} d\hat{y} \\
+    \sum_{b',n',p'} A_{bnpb'n'p'} \phi_{b'n'p'} = f_{bnp}
+    $$
 
     Parameters
     ----------
@@ -627,3 +451,125 @@ def biem(
         density=density,
         matrix=matrix
     )
+
+
+
+def biem_u(res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False) -> Array:
+    """
+    Return the scattered field at the given cartesian coordinates.
+
+    Parameters
+    ----------
+    res : BIEMResultCalculatorProtocol
+        The result of the BIEM.
+    x : Array 
+        The cartesian coordinates.
+    far_field : bool, optional
+        Whether to compute the far field, by default False.
+
+    Returns
+    -------
+    BIEMResult
+        The scattered field and incident field.
+        Each field has shape [...(x), ...(first), harm1, ..., harmN]
+
+    """
+    # center: [v, ...(first), B]
+    # solution_expansion: [...(first), B, harm1, ..., harmN]
+    c = res.c
+    n_end, _ = ush.assume_n_end_and_include_negative_m_from_harmonics(c, res.density)
+    centers = res.centers
+    radii = res.radii
+    k = res.k
+    eta = res.eta
+    xp = array_namespace(x, centers, radii, k, eta)
+    kind = res.kind
+    d = xp.asarray(c.c_ndim)
+    ndim_first = k.ndim
+
+    x = xp.stack([x[i] for i in range(c.c_ndim)], axis=0)
+    ndim_x = x.ndim - 1
+    # [v, ...(x)] -> [v, ...(x), ...(first), B]
+    x_ = x[(slice(None), ...) + (None,) * (ndim_first + 1)]
+    # [v, ...(x), ...(first), B] -> [...(x), ...(first), B]
+    spherical = c.from_cartesian(
+        x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)]
+    )
+    # [...(x), ...(first), B]
+    res = spherical["r"]
+    # [harm1, ..., harmN] -> [...(x), ...(first), B, harm1, ..., harmN]
+    n = c.index_array_harmonics(c.root, n_end=n_end, expand_dims=True)[
+        (None,) * res.ndim + (...,)
+    ]
+    # [...(x), ...(first), B, harm1, ..., harmN]
+    k_harm = k[(None,) * ndim_x + (...,) + (None,) * (c.s_ndim + 1)]
+    y_abs = radii[(None,) * ndim_x + (...,) + (None,) * c.s_ndim]
+    x_abs = res[(...,) + (None,) * c.s_ndim]
+    SL_coef_ = potential_coef(
+        n,
+        d,
+        k_harm,
+        y_abs=y_abs,
+        x_abs=x_abs,
+        derivative="S",
+        for_func="solution" if far_field else "harmonics",
+    )
+    DL_coef_ = potential_coef(
+        n,
+        d,
+        k_harm,
+        y_abs=y_abs,
+        x_abs=x_abs,
+        derivative="D",
+        for_func="solution" if far_field else "harmonics",
+        limit=False,
+    )
+    SD_coef_ = DL_coef_ - xp.asarray(1j) * eta * SL_coef_
+    # [...(first), B, harm1, ..., harmN]
+    # -> [...(x), ...(first), B, harm1, ..., harmN]
+    density_ = res.density[(None,) * ndim_x + (...,)]
+    # [...(x), ...(first), B]
+    spherical_no_r: dict[TSpherical, Array] = {
+        k: v for k, v in spherical.items() if k != "r"
+    }
+    # [harm1, ..., harmN]
+    Y = c.harmonics(
+        spherical_no_r,
+        n_end=n_end,
+        condon_shortley_phase=False,
+        expand_dims=True,
+        concat=True,
+    )
+    # [...(x), ...(first), B, harm1, ..., harmN]
+    uscat = density_ * SD_coef_ * Y
+    uscatfarcoef = (
+        (-1j) ** n
+        / (1j * k_harm) ** ((d - 1) / 2)
+        * xp.exp(
+            1j
+            * k_harm
+            * xp.sum(
+                # centers: [v, ...(first), B]
+                # x: [v, ...(x), ...(first), B]
+                x_[(...,) + (None,) * (c.s_ndim)]
+                * -centers[
+                    (slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim
+                ],
+                axis=0,
+            )
+        )
+    )
+    uscatfar = density_ * SD_coef_far_ * Y * uscatfarcoef
+    # [...(x), ...(first), B, harm1, ..., harmN] -> [...(x), ...(first)]
+    uscateach = xp.sum(uscat, axis=tuple(range(-c.s_ndim, 0)))
+    uscatfareach = xp.sum(uscatfar, axis=tuple(range(-c.s_ndim, 0)))
+    uscat = xp.sum(uscateach, axis=-1)
+    uscatfar = xp.sum(uscatfareach, axis=-1)
+
+    # fill invalid regions with nan
+    if kind == "outer":
+        u[(res < radii).any(axis=-1), ...] = xp.nan
+    elif kind == "inner":
+        u[(res > radii).any(axis=-1), ...] = xp.nan
+    else:
+        raise ValueError(f"Invalid kind: {kind}")
