@@ -292,7 +292,7 @@ def biem(
     ndim_first = k.ndim
 
     # []
-    d = xp.array(c.c_ndim)
+    d = xp.asarray(c.c_ndim)
     n_spheres = radii.shape[-1]
 
     # boundary condition
@@ -454,7 +454,7 @@ def biem(
 
 
 def biem_u(
-    res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False
+    res: BIEMResultCalculatorProtocol, x: Array, /, far_field: bool = False, per_ball: bool = False
 ) -> Array:
     """
     Return the scattered field at the given cartesian coordinates.
@@ -477,6 +477,8 @@ def biem_u(
     """
     # center: [v, ...(first), B]
     # solution_expansion: [...(first), B, harm1, ..., harmN]
+    if res.density is None:
+        raise ValueError("The BIEMResult does not have density.")
     c = res.c
     n_end, _ = ush.assume_n_end_and_include_negative_m_from_harmonics(c, res.density)
     centers = res.centers
@@ -490,6 +492,7 @@ def biem_u(
 
     x = xp.stack([x[i] for i in range(c.c_ndim)], axis=0)
     ndim_x = x.ndim - 1
+
     # [v, ...(x)] -> [v, ...(x), ...(first), B]
     x_ = x[(slice(None), ...) + (None,) * (ndim_first + 1)]
     # [v, ...(x), ...(first), B] -> [...(x), ...(first), B]
@@ -497,15 +500,15 @@ def biem_u(
         x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)]
     )
     # [...(x), ...(first), B]
-    res = spherical["r"]
+    r = spherical["r"]
     # [harm1, ..., harmN] -> [...(x), ...(first), B, harm1, ..., harmN]
-    n = c.index_array_harmonics(c.root, n_end=n_end, expand_dims=True)[
+    n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True)[
         (None,) * res.ndim + (...,)
     ]
     # [...(x), ...(first), B, harm1, ..., harmN]
     k_harm = k[(None,) * ndim_x + (...,) + (None,) * (c.s_ndim + 1)]
     y_abs = radii[(None,) * ndim_x + (...,) + (None,) * c.s_ndim]
-    x_abs = res[(...,) + (None,) * c.s_ndim]
+    x_abs = r[(...,) + (None,) * c.s_ndim]
     SL_coef_ = potential_coef(
         n,
         d,
@@ -534,38 +537,42 @@ def biem_u(
         k: v for k, v in spherical.items() if k != "r"
     }
     # [harm1, ..., harmN]
-    Y = c.harmonics(
+    Y = ush.harmonics(
+        c,
         spherical_no_r,
         n_end=n_end,
         condon_shortley_phase=False,
         expand_dims=True,
         concat=True,
     )
-    # [...(x), ...(first), B, harm1, ..., harmN]
-    uscat = density_ * SD_coef_ * Y
-    uscatfarcoef = (
-        (-1j) ** n
-        / (1j * k_harm) ** ((d - 1) / 2)
-        * xp.exp(
-            1j
-            * k_harm
-            * xp.sum(
-                # centers: [v, ...(first), B]
-                # x: [v, ...(x), ...(first), B]
-                x_[(...,) + (None,) * (c.s_ndim)]
-                * -centers[
-                    (slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim
-                ],
-                axis=0,
+    if far_field:
+        uscatfarcoef = (
+            (-1j) ** n
+            / (1j * k_harm) ** ((d - 1) / 2)
+            * xp.exp(
+                1j
+                * k_harm
+                * xp.sum(
+                    # centers: [v, ...(first), B]
+                    # x: [v, ...(x), ...(first), B]
+                    x_[(...,) + (None,) * (c.s_ndim)]
+                    * -centers[
+                        (slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim
+                    ],
+                    axis=0,
+                )
             )
         )
-    )
-    uscatfar = density_ * SD_coef_far_ * Y * uscatfarcoef
-    # [...(x), ...(first), B, harm1, ..., harmN] -> [...(x), ...(first)]
-    uscateach = xp.sum(uscat, axis=tuple(range(-c.s_ndim, 0)))
-    uscatfareach = xp.sum(uscatfar, axis=tuple(range(-c.s_ndim, 0)))
-    uscat = xp.sum(uscateach, axis=-1)
-    uscatfar = xp.sum(uscatfareach, axis=-1)
+        uscatfar = density_ * SD_coef_far_ * Y * uscatfarcoef
+        uscatfar = xp.sum(uscatfar, axis=-1)
+        if per_ball:
+            return uscatfar
+        return xp.sum(uscatfar, axis=-1)
+    # [...(x), ...(first), B, harm]
+    uscat = density_ * SD_coef_ * Y
+    uscat = xp.sum(uscat, axis=-1)
+    if not per_ball:
+        uscat = xp.sum(uscat, axis=-1)
 
     # fill invalid regions with nan
     if kind == "outer":
@@ -574,3 +581,4 @@ def biem_u(
         u[(res > radii).any(axis=-1), ...] = xp.nan
     else:
         raise ValueError(f"Invalid kind: {kind}")
+    return uscat
