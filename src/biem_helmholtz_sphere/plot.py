@@ -7,7 +7,7 @@ from pandas import DataFrame
 from plotly.graph_objects import Figure
 
 from .biem import BIEMResultCalculator, biem_u
-
+from array_api_compat import array_namespace
 
 def plot_biem(
     biem_res: BIEMResultCalculator,
@@ -60,6 +60,7 @@ def plot_biem(
     """
     xspace_ = xspace or (-1, 1, 10)
     yspace_ = yspace or (-1, 1, 10)
+    xp = array_namespace(biem_res.k)
     plot_uscateach_ = xp.asarray(plot_uscateach)
     if plot_uscateach_.ndim == 0:
         plot_uscateach_ = plot_uscateach_[None]

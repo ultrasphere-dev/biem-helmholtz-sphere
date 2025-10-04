@@ -464,6 +464,11 @@ def biem(
         # [..., B, harm, B', harm'] and [..., B, harm]
         density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
 
+    def uin_wrapped(x: Array, /, *, expand_x: bool = True) -> Array:
+        if expand_x:
+            x = x[(...,) + (None,) * ndim_first]
+        return uin(x)
+
     return BIEMResultCalculator(
         c=c,
         centers=centers,
@@ -472,7 +477,7 @@ def biem(
         n_end=n_end,
         eta=eta,
         kind=kind,
-        uin=uin,
+        uin=uin_wrapped,
         density=density,
         matrix=matrix,
     )
@@ -484,6 +489,7 @@ def biem_u(
     /,
     far_field: bool = False,
     per_ball: bool = False,
+    expand_x: bool = True,
 ) -> Array:
     """
     Return the scattered field at the given cartesian coordinates.
@@ -493,19 +499,23 @@ def biem_u(
     res : BIEMResultCalculatorProtocol
         The result of the BIEM.
     x : Array
-        The cartesian coordinates.
+        The cartesian coordinates of shape (c.c_ndim, ...(x), ...(first))
+        if expand_x is True,
+        or of shape (c.c_ndim, ...(x))
+        if expand_x is False.
     far_field : bool, optional
         Whether to compute the far field, by default False.
 
     Returns
     -------
-    BIEMResult
-        The scattered field and incident field.
-        Each field has shape [...(x), ...(first), harm1, ..., harmN]
+    Array
+        The scattered field of shape (...(x), ...(first))
+        if per_ball is False,
+        or of shape (...(x), ...(first), B)
+        if per_ball is True.
 
     """
-    # center: [v, ...(first), B]
-    # solution_expansion: [...(first), B, harm1, ..., harmN]
+    # center: (v, ...(first), B)
     if res.density is None:
         raise ValueError("The BIEMResult does not have density.")
     c = res.c
@@ -521,17 +531,19 @@ def biem_u(
 
     x = xp.stack([x[i] for i in range(c.c_ndim)], axis=0)
     ndim_x = x.ndim - 1
+    if not expand_x:
+        ndim_x -= ndim_first
 
-    # [v, ...(x)] -> [v, ...(x), ...(first), B]
-    x_ = x[(slice(None), ...) + (None,) * (ndim_first + 1)]
-    # [v, ...(x), ...(first), B] -> [...(x), ...(first), B]
+    # (v, ...(x)) -> (v, ...(x), ...(first), B)
+    x_ = x[(slice(None), ...) + (None,) * ((ndim_first if expand_x else 0) + 1)]
+    # (v, ...(x), ...(first), B) -> (...(x), ...(first), B)
     spherical = c.from_cartesian(
         x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)]
     )
-    # [...(x), ...(first), B]
+    # (...(x), ...(first), B)
     r = spherical["r"]
     # [harm1, ..., harmN] -> [...(x), ...(first), B, harm1, ..., harmN]
-    n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True)[
+    n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True, xp=xp)[
         (None,) * res.ndim + (...,)
     ]
     # [...(x), ...(first), B, harm1, ..., harmN]
@@ -558,10 +570,14 @@ def biem_u(
         limit=False,
     )
     SD_coef_ = DL_coef_ - xp.asarray(1j) * eta * SL_coef_
-    # [...(first), B, harm1, ..., harmN]
-    # -> [...(x), ...(first), B, harm1, ..., harmN]
+    # (...(x), ...(first), B, harm)
+    SD_coef_ = ush.flatten_harmonics(
+        c, SD_coef_, n_end=n_end, include_negative_m=True
+    )
+    # (...(first), B, harm)
+    # -> (...(x), ...(first), B, harm)
     density_ = res.density[(None,) * ndim_x + (...,)]
-    # [harm1, ..., harmN]
+    # (...(x), ...(first), B, harm)
     Y = ush.harmonics(
         c,
         spherical,
@@ -593,10 +609,12 @@ def biem_u(
         if per_ball:
             return uscatfar
         return xp.sum(uscatfar, axis=-1)
-    # [...(x), ...(first), B, harm]
+    # (...(x), ...(first), B, harm)
     uscat = density_ * SD_coef_ * Y
+    # (...(x), ...(first), B)
     uscat = xp.sum(uscat, axis=-1)
     if not per_ball:
+        # (...(x), ...(first))
         uscat = xp.sum(uscat, axis=-1)
 
     # fill invalid regions with nan
