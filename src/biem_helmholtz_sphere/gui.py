@@ -12,7 +12,7 @@ from ultrasphere import (
     create_standard_prime,
 )
 
-from .biem import BIEMResultCalculator, biem
+from .biem import BIEMResultCalculator, biem, plane_wave
 from .plot import plot_biem
 
 
@@ -216,7 +216,7 @@ def serve() -> None:
             return None
         res: BIEMResultCalculator[Any, Any] = biem(
             c,
-            xp.asarray((1,) + (0,) * c.s_ndim),
+            plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
             k=k,
             n_end=n_end,
             eta=eta,
