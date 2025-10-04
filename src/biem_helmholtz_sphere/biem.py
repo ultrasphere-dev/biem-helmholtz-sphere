@@ -662,6 +662,8 @@ def biem_u(
     if not per_ball:
         # (...(x), ...(first))
         uscat = xp.sum(uscat, axis=-1)
+    # for 0d case
+    uscat = xp.asarray(uscat)
 
     # fill invalid regions with nan
     if kind == "outer":
