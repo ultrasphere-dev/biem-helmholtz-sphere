@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Callable, Mapping
-from typing import Literal, NotRequired, Protocol, TypedDict, TypeVar
+from typing import Any, Literal, NotRequired, Protocol, TypedDict, TypeVar
 
 import array_api_extra as xpx
 import attrs
@@ -44,7 +44,7 @@ class BIEMKwargs(TypedDict):
     even if there is only one sphere, by default False."""
 
 
-class BIEMResultCalculatorProtocol(Protocol):
+class BIEMResultCalculatorProtocol[TSpherical, TCartesian](Protocol):
     """Callable that computes the BIEMResult at the given cartesian coordinates."""
 
     c: SphericalCoordinates[TSpherical, TCartesian]
@@ -110,7 +110,7 @@ class BIEMResultCalculatorProtocol(Protocol):
 
 
 @attrs.frozen(kw_only=True)
-class BIEMResultCalculator(BIEMResultCalculatorProtocol):
+class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian]):
     """Callable that computes the BIEMResult at the given cartesian coordinates."""
 
     c: SphericalCoordinates[TSpherical, TCartesian]
@@ -287,7 +287,7 @@ def biem(
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
     force_matrix: bool = False,
-) -> BIEMResultCalculator:
+) -> BIEMResultCalculator[TSpherical, TCartesian]:
     r"""
     Boundary Integral Equation Method (BIEM) for the Helmholtz equation.
 
@@ -530,7 +530,7 @@ def biem(
 
 
 def biem_u(
-    res: BIEMResultCalculatorProtocol,
+    res: BIEMResultCalculatorProtocol[Any, Any],
     x: Array,
     /,
     far_field: bool = False,

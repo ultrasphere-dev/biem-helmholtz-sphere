@@ -11,7 +11,7 @@ from .biem import BIEMResultCalculator, biem_u
 
 
 def plot_biem(
-    biem_res: BIEMResultCalculator,
+    biem_res: BIEMResultCalculator[Any, Any],
     /,
     *,
     plot_uin: bool = True,

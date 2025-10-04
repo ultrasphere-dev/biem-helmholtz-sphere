@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 import panel as pn
 from array_api._2024_12 import Array, ArrayNamespaceFull
@@ -12,7 +12,7 @@ from ultrasphere import (
     create_standard_prime,
 )
 
-from .biem import biem
+from .biem import BIEMResultCalculator, biem
 from .plot import plot_biem
 
 
@@ -214,7 +214,7 @@ def serve() -> None:
             #     f"radiuscenter.shape[1] must be {d + 1}, but {radiuscenter.shape[1]}"
             # )
             return None
-        res = biem(
+        res: BIEMResultCalculator[Any, Any] = biem(
             c,
             xp.asarray((1,) + (0,) * c.s_ndim),
             k=k,
