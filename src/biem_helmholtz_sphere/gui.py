@@ -4,7 +4,13 @@ import panel as pn
 from array_api._2024_12 import Array, ArrayNamespaceFull
 from array_api_compat import numpy as np
 from array_api_compat import torch
-from ultrasphere import create_from_branching_types
+from ultrasphere import (
+    create_from_branching_types,
+    create_hopf,
+    create_random,
+    create_standard,
+    create_standard_prime,
+)
 
 from .biem import biem
 from .plot import plot_biem
@@ -112,24 +118,16 @@ def serve() -> None:
         else:
             ccustomw.disabled = True
             if ctype == "standard":
-                ccustomw.value = SphericalCoordinates.standard(
-                    d - 1
-                ).branching_types_expression_str
+                ccustomw.value = create_standard(d - 1).branching_types_expression_str
             elif ctype == "standard_prime":
-                ccustomw.value = SphericalCoordinates.standard_prime(
-                    d - 1
-                ).branching_types_expression_str
+                ccustomw.value = create_standard_prime(d - 1).branching_types_expression_str
             elif ctype == "hopf":
                 if xp.pow(int(xp.log2(d)), 2) == d:
-                    ccustomw.value = SphericalCoordinates.hopf(
-                        int(xp.log2(d))
-                    ).branching_types_expression_str
+                    ccustomw.value = create_hopf(int(xp.log2(d))).branching_types_expression_str
                 else:
                     raise ValueError(f"d must be a power of 2, but {d}")
             elif ctype == "random":
-                ccustomw.value = SphericalCoordinates.random(
-                    d - 1
-                ).branching_types_expression_str
+                ccustomw.value = create_random(d - 1).branching_types_expression_str
             else:
                 raise ValueError(f"Invalid cstr: {ctype}")
 
@@ -215,7 +213,7 @@ def serve() -> None:
             # raise ValueError(
             #     f"radiuscenter.shape[1] must be {d + 1}, but {radiuscenter.shape[1]}"
             # )
-            return
+            return None
         res = biem(
             c,
             xp.asarray((1,) + (0,) * c.s_ndim),

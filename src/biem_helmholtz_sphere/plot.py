@@ -3,11 +3,12 @@ from collections.abc import Sequence
 from typing import Any
 
 import plotly.express as px
+from array_api_compat import array_namespace
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
 from .biem import BIEMResultCalculator, biem_u
-from array_api_compat import array_namespace
+
 
 def plot_biem(
     biem_res: BIEMResultCalculator,
@@ -68,9 +69,7 @@ def plot_biem(
     c = biem_res.c
     x = xp.linspace(*xspace_)[:, None]
     y = xp.linspace(*yspace_)[None, :]
-    spherical = c.from_cartesian(
-        defaultdict(lambda: xp.array(0)[None, None], {xaxis: x, yaxis: y})
-    )
+    spherical = c.from_cartesian(defaultdict(lambda: xp.array(0)[None, None], {xaxis: x, yaxis: y}))
     cartesian = c.to_cartesian(spherical, as_array=True)
     ures = biem_u(biem_res, cartesian)
 
@@ -78,9 +77,7 @@ def plot_biem(
     t = xp.arange(n_t)[:, None, None] / n_t
     texp = xp.exp(-1j * t * xp.array(2 * xp.pi))
     shape = (n_t, *xp.broadcast_shapes(x.shape, y.shape))
-    uplot = plot_uin * ures.uin + xp.sum(
-        plot_uscateach_[:, None, None] * ures.uscateach, axis=0
-    )
+    uplot = plot_uin * ures.uin + xp.sum(plot_uscateach_[:, None, None] * ures.uscateach, axis=0)
     df = DataFrame(
         {
             "x": xp.broadcast_to(x[None, ...], shape).flatten(),

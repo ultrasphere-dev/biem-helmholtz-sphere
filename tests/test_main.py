@@ -18,3 +18,4 @@ def test_biem(xp: ArrayNamespaceFull, branching_types: str) -> None:
         radii=xp.asarray((0.5, 0.5)),
         kind="outer",
     )
+    calc.uscat(xp.asarray((4,) + (0,) * (c.c_ndim - 1)))

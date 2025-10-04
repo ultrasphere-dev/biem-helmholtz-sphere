@@ -70,6 +70,44 @@ class BIEMResultCalculatorProtocol(Protocol):
     """The flattened matrix of the BIEM
     of shape [..., B, harm, B', harm']."""
 
+    def uscat(
+        self,
+        x: Array,
+        /,
+        far_field: bool = False,
+        per_ball: bool = False,
+        expand_x: bool = True,
+    ) -> Array:
+        """
+        Return the scattered field at the given cartesian coordinates.
+
+        Parameters
+        ----------
+        x : Array
+            The cartesian coordinates of shape (c.c_ndim, ...(x), ...(first))
+            if expand_x is True,
+            or of shape (c.c_ndim, ...(x))
+            if expand_x is False.
+        far_field : bool, optional
+            Whether to compute the far field, by default False.
+        per_ball : bool, optional
+            Whether to return the scattered field per ball, by default False.
+            If False, the scattered field is summed over all balls.
+        expand_x : bool, optional
+            Whether the input x has the ...(first) dimensions, by default True.
+            If False, the input x is assumed to have only ...(x) dimensions.
+
+        Returns
+        -------
+        Array
+            The scattered field of shape (...(x), ...(first))
+            if per_ball is False,
+            or of shape (...(x), ...(first), B)
+            if per_ball is True.
+
+        """
+        ...
+
 
 @attrs.frozen(kw_only=True)
 class BIEMResultCalculator(BIEMResultCalculatorProtocol):
@@ -98,6 +136,22 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol):
     """The flattened matrix of the BIEM
     of shape [..., B, harm, B', harm']."""
 
+    def uscat(  # noqa: D102
+        self,
+        x: Array,
+        /,
+        far_field: bool = False,
+        per_ball: bool = False,
+        expand_x: bool = True,
+    ) -> Array:
+        return biem_u(
+            self,
+            x,
+            far_field=far_field,
+            per_ball=per_ball,
+            expand_x=expand_x,
+        )
+
 
 def _check_biem_inputs(
     c: SphericalCoordinates[TSpherical, TCartesian],
@@ -106,7 +160,7 @@ def _check_biem_inputs(
     k: Array,
     eta: Array | None = None,
     /,
-):
+) -> tuple[Array, Array, Array, Array]:
     xp = array_namespace(centers, radii, k, eta)
 
     # convert to array
@@ -140,8 +194,7 @@ def _check_biem_inputs(
     # check if broadcastable
     if len({k.ndim, eta.ndim, centers.ndim - 2, radii.ndim - 1}) != 1:
         raise ValueError(
-            f"{k.ndim=}, {eta.ndim=}, {centers.ndim - 2=}, {radii.ndim -1=}"
-            "are not the same."
+            f"{k.ndim=}, {eta.ndim=}, {centers.ndim - 2=}, {radii.ndim -1=}are not the same."
         )
     try:
         xpx.broadcast_shapes(k.shape, eta.shape, centers.shape[:-2], radii.shape[:-1])
@@ -168,8 +221,7 @@ def _check_biem_inputs(
 
     if centers.shape[-1] != c.c_ndim:
         raise ValueError(
-            f"The last dimension of centers must be {c.c_ndim=}, "
-            f"but got {centers.shape[-1]}"
+            f"The last dimension of centers must be {c.c_ndim=}, but got {centers.shape[-1]}"
         )
 
     return centers, radii, k, eta
@@ -218,9 +270,7 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
     direction = direction / xp.linalg.vector_norm(direction, axis=0, keepdims=True)
 
     def inner(x: Array, /) -> Array:
-        ip = xp.sum(
-            direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0
-        )
+        ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
         return xp.exp(1j * k * ip)
 
     return inner
@@ -241,7 +291,10 @@ def biem(
     r"""
     Boundary Integral Equation Method (BIEM) for the Helmholtz equation.
 
-    Let $d \in \mathbb{N} \setminus \lbrace 1 \rbrace$ be the dimension of the space, $k$ be the wave number, and $\mathbb{S}^{d-1} = \lbrace x \in \mathbb{R}^d \mid \|x\| = 1 \rbrace$ be a unit sphere in $\mathbb{R}^d$.
+    Let $d \in \mathbb{N} \setminus \lbrace 1 \rbrace$ be the dimension of the space,
+    $k$ be the wave number,
+    and $\mathbb{S}^{d-1} = \lbrace x \in \mathbb{R}^d \mid \|x\| = 1 \rbrace$
+    be a unit sphere in $\mathbb{R}^d$.
 
     Asuume that $u_\text{in}$ is an incident wave satisfying the Helmholtz equation
 
@@ -254,8 +307,11 @@ def biem(
     $$
     \begin{cases}
     \Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
-    \alpha u + \beta \grad u \dot n_x = -u_\text{in} \quad &x \in \mathbb{S}^{d-1} \\
-    \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}} \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad &\frac{x}{\|x\|} \in \mathbb{S}^{d-1}
+    \alpha u + \beta \grad u \dot n_x = -u_\text{in} \quad
+    &x \in \mathbb{S}^{d-1} \\
+    \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}}
+    \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad
+    &\frac{x}{\|x\|} \in \mathbb{S}^{d-1}
     \end{cases}
     $$
 
@@ -267,11 +323,13 @@ def biem(
     \dlc_n (\rho) := i k^{d-1} rho^{d-1} j_n' (k rho) \\
     \blc_n (\rho) := \slc_n (rho) - i \eta \dlc_n (rho) \\
     A_{bnpb'n'p'} := \blc_{n'} \times \begin{cases}
-    \delta_{n,n'} \delta_{p,p'} (\alpha h^{(1)}_n (k rho_b) + \beta h^{(1)'}_n (k rho_b)) & b = b' \\
-    (S|R)_{n,p,n',p'} (c_b - c_b') (\alpha j_n (k rho_b) + \beta j'_n (k rho_b)) & b \neq b'
+    \delta_{n,n'} \delta_{p,p'} (\alpha h^{(1)}_n (k rho_b) + \beta h^{(1)'}_n (k rho_b))
+    & b = b' \\
+    (S|R)_{n,p,n',p'} (c_b - c_b') (\alpha j_n (k rho_b) + \beta j'_n (k rho_b))
+    & b \neq b'
     \end{cases} \\
     f_{bnp} := - \integral_{\partial B_b} u_{in} (x) Y_{n,p} (\hat{x - c_b}) dx
-    = - \integral_{S^{d-1}} u_{in} (c_b + rho_b \hat{y}) Y_{n,p} (\hat{y}) rho_b^{d-1} d\hat{y} \\
+    = - \integral_{S^{d-1}} u_{in} (c_b + rho_b y) Y_{n,p} (y) rho_b^{d-1} dy \\
     \sum_{b',n',p'} A_{bnpb'n'p'} \phi_{b'n'p'} = f_{bnp}
     $$
 
@@ -325,17 +383,9 @@ def biem(
     # boundary condition
     def f(spherical: Mapping[TSpherical, Array]) -> Array:
         # (c_ndim, ...(f), B, ...)
-        x = c.to_cartesian(spherical, as_array=True)[
-            (...,) + (None,) * (1 + ndim_first)
-        ]
+        x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (1 + ndim_first)]
         x = (
-            x
-            + centers[
-                (slice(None),)
-                + (None,) * c.s_ndim
-                + (slice(None),)
-                + (None,) * ndim_first
-            ]
+            x + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]
         )  # x - c_i
         return -uin(x)
 
@@ -404,9 +454,7 @@ def biem(
             (None,) * (ndim_first) + (slice(None), None, None, None)
         ]
         # (B') -> (..., B, B', harm, harm')
-        ball_to_add = xp.arange(n_spheres)[
-            (None,) * (ndim_first) + (None, slice(None), None, None)
-        ]
+        ball_to_add = xp.arange(n_spheres)[(None,) * (ndim_first) + (None, slice(None), None, None)]
         # (..., B) -> (..., B, B')
         radius_current = radii[..., :, None]
         # (..., B') -> (..., B, B')
@@ -435,9 +483,7 @@ def biem(
             for_func="solution",
         )
         SD_coef = D_coef - 1j * eta[(...,) + (None,) * (3 + c.s_ndim)] * S_coef
-        SD_coef = ush.flatten_harmonics(
-            c, SD_coef, n_end=n_end, include_negative_m=True
-        )
+        SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
         # ([..., B, B', harm, harm')
         matrix = SD_coef * xp.where(
             ball_current == ball_to_add,
@@ -505,6 +551,12 @@ def biem_u(
         if expand_x is False.
     far_field : bool, optional
         Whether to compute the far field, by default False.
+    per_ball : bool, optional
+        Whether to return the scattered field per ball, by default False.
+        If False, the scattered field is summed over all balls.
+    expand_x : bool, optional
+        Whether the input x has the ...(first) dimensions, by default True.
+        If False, the input x is assumed to have only ...(x) dimensions.
 
     Returns
     -------
@@ -537,16 +589,14 @@ def biem_u(
     # (v, ...(x)) -> (v, ...(x), ...(first), B)
     x_ = x[(slice(None), ...) + (None,) * ((ndim_first if expand_x else 0) + 1)]
     # (v, ...(x), ...(first), B) -> (...(x), ...(first), B)
-    spherical = c.from_cartesian(
-        x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)]
-    )
+    spherical = c.from_cartesian(x_ - centers[(slice(None),) + (None,) * ndim_x + (...,)])
     # (...(x), ...(first), B)
     r = spherical["r"]
-    # [harm1, ..., harmN] -> [...(x), ...(first), B, harm1, ..., harmN]
+    # (harm1, ..., harmN) -> (...(x), ...(first), B, harm1, ..., harmN)
     n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True, xp=xp)[
-        (None,) * res.ndim + (...,)
+        (None,) * r.ndim + (...,)
     ]
-    # [...(x), ...(first), B, harm1, ..., harmN]
+    # (...(x), ...(first), B, harm1, ..., harmN)
     k_harm = k[(None,) * ndim_x + (...,) + (None,) * (c.s_ndim + 1)]
     y_abs = radii[(None,) * ndim_x + (...,) + (None,) * c.s_ndim]
     x_abs = r[(...,) + (None,) * c.s_ndim]
@@ -571,9 +621,7 @@ def biem_u(
     )
     SD_coef_ = DL_coef_ - xp.asarray(1j) * eta * SL_coef_
     # (...(x), ...(first), B, harm)
-    SD_coef_ = ush.flatten_harmonics(
-        c, SD_coef_, n_end=n_end, include_negative_m=True
-    )
+    SD_coef_ = ush.flatten_harmonics(c, SD_coef_, n_end=n_end, include_negative_m=True)
     # (...(first), B, harm)
     # -> (...(x), ...(first), B, harm)
     density_ = res.density[(None,) * ndim_x + (...,)]
@@ -597,14 +645,12 @@ def biem_u(
                     # centers: [v, ...(first), B]
                     # x: [v, ...(x), ...(first), B]
                     x_[(...,) + (None,) * (c.s_ndim)]
-                    * -centers[
-                        (slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim
-                    ],
+                    * -centers[(slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim],
                     axis=0,
                 )
             )
         )
-        uscatfar = density_ * SD_coef_far_ * Y * uscatfarcoef
+        uscatfar = density_ * SD_coef_ * Y * uscatfarcoef
         uscatfar = xp.sum(uscatfar, axis=-1)
         if per_ball:
             return uscatfar
@@ -619,9 +665,9 @@ def biem_u(
 
     # fill invalid regions with nan
     if kind == "outer":
-        u[(res < radii).any(axis=-1), ...] = xp.nan
+        uscat[(r < radii).any(axis=-1), ...] = xp.nan
     elif kind == "inner":
-        u[(res > radii).any(axis=-1), ...] = xp.nan
+        uscat[(r > radii).any(axis=-1), ...] = xp.nan
     else:
         raise ValueError(f"Invalid kind: {kind}")
     return uscat
