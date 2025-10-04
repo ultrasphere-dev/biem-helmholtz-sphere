@@ -11,6 +11,7 @@ from batch_tensorsolve import btensorsolve
 from ultrasphere import (
     SphericalCoordinates,
     potential_coef,
+    shn1,
 )
 
 TCartesian = TypeVar("TCartesian")
@@ -299,6 +300,52 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
     def inner(x: Array, /) -> Array:
         ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
         return xp.exp(1j * k * ip)
+
+    return inner
+
+
+def point_source(k: Array, source: Array, n: int) -> Callable[[Array], Array]:
+    r"""
+    Point source.
+
+    $$
+    u (x) := h^{(1)}_n (k \|x - \text{source}\|)
+    $$
+
+    Parameters
+    ----------
+    k : Array
+        The wavenumber of shape (...).
+    source : Array
+        The position of the point source of shape (c.c_ndim, ...).
+    n : int
+        The order of the Hankel function.
+
+    Returns
+    -------
+    Callable[[Array], Array]
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        returns the incident field of shape (...(any), ...)
+
+    """
+    xp = array_namespace(k, source)
+    try:
+        xpx.broadcast_shapes(k.shape, source.shape[1:])
+    except Exception as e:
+        raise ValueError(
+            "Shapes of k and source[1:] "
+            "are not broadcastable\n"
+            f"{tuple(k.shape)=}\n"
+            f"{tuple(source.shape)=}"
+        ) from e
+    if source.ndim != k.ndim + 1:
+        raise ValueError(f"{source.ndim=} is not {k.ndim + 1=}")
+    n_ = xp.asarray(n)
+
+    def inner(x: Array, /) -> Array:
+        x = x - source[(slice(None),) + (None,) * (x.ndim - source.ndim)]
+        d = int(x.shape[0])
+        return shn1(n_, xp.asarray(d), k * xp.linalg.vector_norm(x, axis=0))
 
     return inner
 
