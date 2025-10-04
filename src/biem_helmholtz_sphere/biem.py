@@ -44,12 +44,39 @@ class BIEMKwargs(TypedDict):
     even if there is only one sphere, by default False."""
 
 
+class UinCallable(Protocol):
+    """Callable that computes the incident field at the given cartesian coordinates."""
+
+    def __call__(self, x: Array, /, *, expand_x: bool = True) -> Array:
+        """
+        Return the incident field at the given cartesian coordinates.
+
+        Parameters
+        ----------
+        x : Array
+            The cartesian coordinates of shape (c.c_ndim, ...(x), ...(first))
+            if expand_x is True,
+            or of shape (c.c_ndim, ...(x))
+            if expand_x is False.
+        expand_x : bool, optional
+            Whether the input x has the ...(first) dimensions, by default True.
+            If False, the input x is assumed to have only ...(x) dimensions.
+
+        Returns
+        -------
+        Array
+            The incident field of shape (...(x), ...(first))
+
+        """
+        ...
+
+
 class BIEMResultCalculatorProtocol[TSpherical, TCartesian](Protocol):
     """Callable that computes the BIEMResult at the given cartesian coordinates."""
 
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: Callable[[Array], Array] | Array
+    uin: UinCallable
     """The incident field."""
     centers: Array
     """The centers of the spheres."""
@@ -115,7 +142,7 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
 
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: Callable[[Array], Array] | Array
+    uin: UinCallable
     """The incident field."""
     centers: Array
     """The centers of the spheres."""

@@ -2,12 +2,13 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
 
+import array_api_extra as xpx
 import plotly.express as px
 from array_api_compat import array_namespace
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
-from .biem import BIEMResultCalculator, biem_u
+from .biem import BIEMResultCalculator
 
 
 def plot_biem(
@@ -69,32 +70,39 @@ def plot_biem(
     c = biem_res.c
     x = xp.linspace(*xspace_)[:, None]
     y = xp.linspace(*yspace_)[None, :]
-    spherical = c.from_cartesian(defaultdict(lambda: xp.array(0)[None, None], {xaxis: x, yaxis: y}))
+    spherical = c.from_cartesian(
+        defaultdict(lambda: xp.asarray(0)[None, None], {xaxis: x, yaxis: y})
+    )
     cartesian = c.to_cartesian(spherical, as_array=True)
-    ures = biem_u(biem_res, cartesian)
+    uin = biem_res.uin(cartesian)
+    uscateach = biem_res.uscat(cartesian, per_ball=True)
+    uscat = xp.sum(uscateach, axis=-1)
+    n_spheres = int(uscateach.shape[-1])
 
     # time
     t = xp.arange(n_t)[:, None, None] / n_t
-    texp = xp.exp(-1j * t * xp.array(2 * xp.pi))
-    shape = (n_t, *xp.broadcast_shapes(x.shape, y.shape))
-    uplot = plot_uin * ures.uin + xp.sum(plot_uscateach_[:, None, None] * ures.uscateach, axis=0)
+    texp = xp.exp(-1j * t * xp.asarray(2 * xp.pi))
+    shape = (n_t, *xpx.broadcast_shapes(x.shape, y.shape))
+    uplot = plot_uin * uin + xp.sum(plot_uscateach_[None, None, :] * uscateach, axis=0)
     df = DataFrame(
         {
-            "x": xp.broadcast_to(x[None, ...], shape).flatten(),
-            "y": xp.broadcast_to(y[None, ...], shape).flatten(),
-            "t": xp.broadcast_to(t, shape).flatten(),
-            "uin": (ures.uin * texp).real.flatten(),
-            "uscat": (ures.uscat * texp).real.flatten(),
-            "uall": ((ures.uin + ures.uscat) * texp).real.flatten(),
-            "uplot": (uplot * texp).real.flatten(),
-        }
-        | {
-            f"uscat{i}": (uscateach_item * texp).real.flatten()
-            for i, uscateach_item in enumerate(ures.uscateach)
+            k: xp.reshape(v, (-1,))
+            for k, v in (
+                {
+                    "x": xp.broadcast_to(x[None, ...], shape),
+                    "y": xp.broadcast_to(y[None, ...], shape),
+                    "t": xp.broadcast_to(t, shape),
+                    "Re uin": xp.real(uin * texp),
+                    "Re uscat": xp.real(uscat * texp),
+                    "Re uall": xp.real(uin + uscat),
+                    "Re uplot": xp.real(uplot * texp),
+                }
+                | {f"Re uscat{i}": xp.real(uscateach[..., i] * texp) for i in range(n_spheres)}
+            ).items()
         }
     )
     if log:
-        df["uplot"] = xp.sign(df["uplot"]) * xp.log1p(xp.abs(df["uplot"]))
+        df["Re uplot"] = xp.sign(df["uplot"]) * xp.log1p(xp.abs(df["uplot"]))
 
     # title
     title = ""
@@ -104,13 +112,15 @@ def plot_biem(
         if plot_uin:
             title += " + "
         title += "Scattered Field by Ball " + ", ".join(
-            plot_uscateach_.nonzero()[0].astype(str).to_numpy().tolist()
+            [str(x) for x in xp.nonzero(plot_uscateach_)[0]]
         )
     title += r"<br>"
     title += (
-        f"{c.c_ndim:g}D, Type {c.branching_types_expression_str} coordinates, "
-        f"Max Degree={biem_res.n_end - 1:g}, k={biem_res.k.item():g}, "
-        f"η={biem_res.eta.item():g}"
+        f"{c.c_ndim:g}D, "
+        f"type {c.branching_types_expression_str} coordinates, "
+        f"Max Degree={biem_res.n_end - 1:g}, "
+        f"k={float(biem_res.k):g}, "
+        f"η={float(biem_res.eta):g}"
     )
 
     plot_2d = px.scatter(
@@ -121,10 +131,9 @@ def plot_biem(
         range_color=[-df["uplot"].abs().max(), df["uplot"].abs().max()],
         range_x=[xspace_[0], xspace_[1]],
         range_y=[yspace_[0], yspace_[1]],
-        custom_data=["t", "uin", "uscat", "uall"]
-        + [f"uscat{i}" for i in range(ures.uscateach.shape[0])],
+        custom_data=["t", "uin", "uscat", "uall"] + [f"uscat{i}" for i in range(n_spheres)],
         hover_data={"t": False, "uin": True, "uscat": True, "uall": True}
-        | {f"uscat{i}": True for i in range(ures.uscateach.shape[0])},
+        | {f"uscat{i}": True for i in range(n_spheres)},
         animation_frame="t",
         title=title,
         labels={
