@@ -60,8 +60,8 @@ def plot_biem(
         The plotly figure.
 
     """
-    xspace_ = xspace or (-1, 1, 10)
-    yspace_ = yspace or (-1, 1, 10)
+    xspace_ = xspace or (-1, 1, 100)
+    yspace_ = yspace or (-1, 1, 100)
     xp = array_namespace(biem_res.k)
     plot_uscateach_ = xp.asarray(plot_uscateach)
     if plot_uscateach_.ndim == 0:
@@ -83,7 +83,11 @@ def plot_biem(
     t = xp.arange(n_t)[:, None, None] / n_t
     texp = xp.exp(-1j * t * xp.asarray(2 * xp.pi))
     shape = (n_t, *xpx.broadcast_shapes(x.shape, y.shape))
-    uplot = plot_uin * uin + xp.sum(plot_uscateach_[None, None, :] * uscateach, axis=0)
+    uplot = plot_uin * uin + xp.sum(plot_uscateach_[None, None, :] * uscateach, axis=-1)
+    uplot_re = xp.real(uplot * texp)
+    if log:
+        uplot_re = xp.sign(uplot_re) * xp.log1p(xp.abs(uplot_re))
+
     df = DataFrame(
         {
             k: xp.reshape(v, (-1,))
@@ -92,17 +96,15 @@ def plot_biem(
                     "x": xp.broadcast_to(x[None, ...], shape),
                     "y": xp.broadcast_to(y[None, ...], shape),
                     "t": xp.broadcast_to(t, shape),
-                    "Re uin": xp.real(uin * texp),
-                    "Re uscat": xp.real(uscat * texp),
-                    "Re uall": xp.real(uin + uscat),
-                    "Re uplot": xp.real(uplot * texp),
+                    "uin": xp.real(uin * texp),
+                    "uscat": xp.real(uscat * texp),
+                    "uall": xp.real((uin + uscat) * texp),
+                    "uplot": uplot_re,
                 }
-                | {f"Re uscat{i}": xp.real(uscateach[..., i] * texp) for i in range(n_spheres)}
+                | {f"uscat{i}": xp.real(uscateach[..., i] * texp) for i in range(n_spheres)}
             ).items()
         }
     )
-    if log:
-        df["Re uplot"] = xp.sign(df["uplot"]) * xp.log1p(xp.abs(df["uplot"]))
 
     # title
     title = ""

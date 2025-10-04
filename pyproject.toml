@@ -40,6 +40,7 @@ scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 
 [project.optional-dependencies]
 cli = [
+    "kaleido>=1.1.0",
     "panel>=1.8.1",
     "plotly>=6.3.1",
     "torch>=2.8.0",
