@@ -256,7 +256,7 @@ def _check_biem_inputs(
 
 
 # [..., B, harm1, ..., harmN]
-def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
+def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
     r"""
     Plane wave.
 
@@ -304,7 +304,7 @@ def plane_wave(k: Array, direction: Array) -> Callable[[Array], Array]:
     return inner
 
 
-def point_source(k: Array, source: Array, n: int) -> Callable[[Array], Array]:
+def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]:
     r"""
     Point source.
 
