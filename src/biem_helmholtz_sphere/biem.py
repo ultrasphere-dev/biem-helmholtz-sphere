@@ -570,14 +570,14 @@ def biem(
                     type="singular",
                 )
             ),
-            translation_coef
+            xp.moveaxis(translation_coef, -1, -2)
             * ush.harmonics_regular_singular_component(
                 c,
                 {"r": radius_current},
                 n_end=n_end,
                 k=k[..., None, None],
                 type="regular",
-            )[..., None, :],
+            )[..., :, None],
         )
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
         matrix = xp.moveaxis(matrix, -3, -2)
