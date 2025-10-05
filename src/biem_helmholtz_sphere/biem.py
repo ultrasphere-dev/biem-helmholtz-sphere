@@ -741,9 +741,9 @@ def biem_u(
 
     # fill invalid regions with nan
     if kind == "outer":
-        uscat[(r < radii).any(axis=-1), ...] = xp.nan
+        uscat[xp.any(r < radii, axis=-1), ...] = xp.nan
     elif kind == "inner":
-        uscat[(r > radii).any(axis=-1), ...] = xp.nan
+        uscat[xp.any(r > radii, axis=-1), ...] = xp.nan
     else:
         raise ValueError(f"Invalid kind: {kind}")
     return uscat
