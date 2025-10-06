@@ -459,7 +459,8 @@ def biem(
         # (c_ndim, ...(f), B, ...)
         x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (1 + ndim_first)]
         x = (
-            x + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]
+            radii * x
+            + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]
         )  # x - c_i
         return -uin(x)
 
