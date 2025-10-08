@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import numpy as np
@@ -17,16 +17,32 @@ centers = [
 radii = [0.25, 0.25]
 
 
-def bempp_cl(
+def bempp_cl_sphere(
     *,
     k: float,
     centers: Sequence[Sequence[float]],
     radii: Sequence[float],
-    x: NDArray[Any],
-    y: NDArray[Any],
-    z: NDArray[Any],
-) -> NDArray[Any]:
-    x, y, z = np.broadcast_arrays(x, y, z)
+) -> Callable[[NDArray[Any], NDArray[Any], NDArray[Any]], NDArray[Any]]:
+    """
+    Calculate the scattered field by multiple spheres using bempp-cl.
+
+    Uses OBIE, not Burton-Miller formulation.
+
+    Parameters
+    ----------
+    k : float
+        The wavenumber.
+    centers : Sequence[Sequence[float]]
+        The centers of the spheres.
+    radii : Sequence[float]
+        The radii of the spheres.
+
+    Returns
+    -------
+    Callable[[NDArray[Any], NDArray[Any], NDArray[Any]], NDArray[Any]]
+        A function that takes x, y, z coordinates and returns the scattered field at those points.
+
+    """
     centers_ = np.asarray(centers)
     radii_ = np.asarray(radii)
     if radii_.ndim != 1:
@@ -55,8 +71,12 @@ def bempp_cl(
 
     rhs = GridFunction(space, fun=f)
     neumann_fun, _ = gmres(lhs, rhs, tol=1e-5)
-    x, y = np.meshgrid(np.linspace(-1, 1, 100), np.linspace(-1, 1, 100), indexing="ij")
-    points = np.stack((x, y, z), axis=0)
-    slp = single_layer_potential(space, points, k)
-    val = slp * neumann_fun
-    return val
+
+    def inner(x: NDArray[Any], y: NDArray[Any], z: NDArray[Any], /) -> NDArray[Any]:
+        x, y, z = np.broadcast_arrays(x, y, z)
+        points = np.stack((x, y, z), axis=0)
+        slp = single_layer_potential(space, points, k)
+        val = slp * neumann_fun
+        return val
+
+    return inner
