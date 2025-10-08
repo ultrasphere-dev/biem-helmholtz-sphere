@@ -255,7 +255,6 @@ def _check_biem_inputs(
     return centers, radii, k, eta
 
 
-# [..., B, harm1, ..., harmN]
 def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
     r"""
     Plane wave.
@@ -456,12 +455,14 @@ def biem(
 
     # boundary condition
     def f(spherical: Mapping[TSpherical, Array]) -> Array:
-        # (c_ndim, ...(f), B, ...)
-        x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (1 + ndim_first)]
+        # (c_ndim, ...(f), ..., B)
+        x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (ndim_first + 1)]
         x = (
             radii * x
             + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]
         )  # x - c_i
+        # (c_ndim, ...(f), B, ...)
+        x = xp.moveaxis(x, -1, -ndim_first - 1)
         return -uin(x)
 
     # (B, ..., harm)
