@@ -130,6 +130,21 @@ wheels = [
 ]
 
 [[package]]
+name = "bempp-cl"
+version = "0.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "meshio" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/d8/481a744f7e7684b71f80ccb7de7de238465b0132bd4f59049b650b487a28/bempp_cl-0.4.2.tar.gz", hash = "sha256:40527c4266980e78ec26ab3ab871fd5b4d6e69c16a4feccba285bf61c6fe81c3", size = 33857425, upload-time = "2025-04-01T08:03:35.185Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/23/82/d6e4cbd25ecbaba8a5ab2e2f657ca88e388b396c4b3c04a01a0bb5d16b4c/bempp_cl-0.4.2-py3-none-any.whl", hash = "sha256:4f1f862f6c735ce250dc48d977a4225e22bed26e418b7626de95d540c4f03c4b", size = 33926800, upload-time = "2025-04-01T08:03:30.861Z" },
+]
+
+[[package]]
 name = "biem-helmholtz-sphere"
 version = "0.0.0"
 source = { editable = "." }
@@ -154,6 +169,7 @@ cli = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "bempp-cl" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -183,6 +199,7 @@ provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bempp-cl", specifier = ">=0.4.2" },
     { name = "pytest", specifier = ">=8,<9" },
     { name = "pytest-cov", specifier = ">=6,<7" },
 ]
@@ -921,6 +938,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "meshio"
+version = "5.3.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/1e/caa4f15c020de3e3486b4133ca689236bd3863a3d6dd0f58e97ce86a296a/meshio-5.3.5.tar.gz", hash = "sha256:f21f01abd9f29ba06ea119304b3d39e610421cfe93b9dd23362834919f87586d", size = 490922, upload-time = "2024-01-31T15:09:41.731Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl", hash = "sha256:0736c6e34ecc768f62f2cde5d8233a3529512a9399b25c68ea2ca0d5900cdc10", size = 166162, upload-time = "2024-01-31T15:09:36.691Z" },
 ]
 
 [[package]]

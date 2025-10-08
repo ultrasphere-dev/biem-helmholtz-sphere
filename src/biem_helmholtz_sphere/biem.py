@@ -509,8 +509,9 @@ def biem(
             for_func="harmonics",
         )
         SD_coef = D_coef - 1j * eta * S_coef
-        SD_coef = ush.flatten_harmonics(c, SD_coef)
+        SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
         density = f_expansion / SD_coef
+        matrix = None
     else:
         # (e_ndim, ..., B, B')
         center_current = centers[:, ..., :, None]

@@ -48,6 +48,7 @@ cli = [
 
 [dependency-groups]
 dev = [
+  "bempp-cl>=0.4.2",
   "pytest>=8,<9",
   "pytest-cov>=6,<7",
 ]
