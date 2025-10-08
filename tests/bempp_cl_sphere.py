@@ -20,6 +20,7 @@ radii = [0.25, 0.25]
 def bempp_cl_sphere(
     *,
     k: float,
+    h: float,
     centers: Sequence[Sequence[float]],
     radii: Sequence[float],
 ) -> Callable[[NDArray[Any], NDArray[Any], NDArray[Any]], NDArray[Any]]:
@@ -32,10 +33,12 @@ def bempp_cl_sphere(
     ----------
     k : float
         The wavenumber.
+    h : float
+        The element size for the mesh.
     centers : Sequence[Sequence[float]]
-        The centers of the spheres.
+        The centers of the spheres of shape (B, 3).
     radii : Sequence[float]
-        The radii of the spheres.
+        The radii of the spheres of shape (B,).
 
     Returns
     -------
@@ -58,7 +61,7 @@ def bempp_cl_sphere(
 
     grid = union(
         [
-            sphere(h=0.2, origin=center, r=radius)
+            sphere(h=h, origin=center, r=radius)
             for center, radius in zip(centers, radii, strict=False)
         ]
     )
@@ -77,6 +80,13 @@ def bempp_cl_sphere(
         points = np.stack((x, y, z), axis=0)
         slp = single_layer_potential(space, points, k)
         val = slp * neumann_fun
+        points_ = np.moveaxis(points, 0, -1)  # (..., 3)
+        val[
+            np.any(
+                np.linalg.norm(points_[..., :, None] - centers_[:, None, :], axis=-1) < radii_,
+                axis=-1,
+            )
+        ] = np.nan
         return val
 
     return inner
