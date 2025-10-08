@@ -73,7 +73,7 @@ def serve() -> None:
     )
     r_plotw = pn.widgets.FloatInput(name="Plot radius", value=4)
     n_plotw = pn.widgets.IntSlider(name="Points to plot", value=60, start=1, end=200)
-    n_endw = pn.widgets.IntSlider(name="Maximum degree", value=5, start=1, end=15)
+    n_endw = pn.widgets.IntSlider(name="Maximum degree", value=5, start=1, end=40)
     n_tw = pn.widgets.IntSlider(name="Time count", value=4, start=1, end=50)
     axisxw = pn.widgets.IntSlider(name="Axis x", value=0, start=0, end=1)
     axisyw = pn.widgets.IntSlider(name="Axis y", value=1, start=0, end=1)
