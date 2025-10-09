@@ -74,7 +74,10 @@ def plot_biem(
         defaultdict(lambda: xp.asarray(0)[None, None], {xaxis: x, yaxis: y})
     )
     cartesian = c.to_cartesian(spherical, as_array=True)
-    uin = biem_res.uin(cartesian)
+    if biem_res.uin is None:
+        uin = xp.full_like(x, xp.nan, dtype=xp.complex128)
+    else:
+        uin = biem_res.uin(cartesian)
     uscateach = biem_res.uscat(cartesian, per_ball=True)
     uscat = xp.sum(uscateach, axis=-1)
     n_spheres = int(uscateach.shape[-1])

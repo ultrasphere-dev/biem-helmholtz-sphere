@@ -77,7 +77,7 @@ class BIEMResultCalculatorProtocol[TSpherical, TCartesian](Protocol):
 
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: UinCallable
+    uin: UinCallable | None
     """The incident field."""
     centers: Array
     """The centers of the spheres."""
@@ -143,7 +143,7 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
 
     c: SphericalCoordinates[TSpherical, TCartesian]
     """The spherical coordinates system."""
-    uin: UinCallable
+    uin: UinCallable | None = None
     """The incident field."""
     centers: Array
     """The centers of the spheres."""
@@ -351,12 +351,13 @@ def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]
 
 def biem(
     c: SphericalCoordinates[TSpherical, TCartesian],
-    uin: Callable[[Array], Array],
+    /,
     *,
     centers: Array,
     radii: Array,
     k: Array,
     n_end: int,
+    uin: Callable[[Array], Array] | None = None,
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
     force_matrix: bool = False,
@@ -410,7 +411,7 @@ def biem(
     ----------
     c : SphericalCoordinates[TSpherical, TCartesian]
         The spherical coordinates system.
-    uin : Callable[[Array], Array]
+    uin : Callable[[Array], Array], optional
         The incident field.
 
         Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
@@ -453,34 +454,39 @@ def biem(
     d = xp.asarray(c.c_ndim)
     n_spheres = radii.shape[-1]
 
-    # boundary condition
-    def f(spherical: Mapping[TSpherical, Array]) -> Array:
-        # (c_ndim, ...(f), ..., B)
-        x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (ndim_first + 1)]
-        x = (
-            radii * x
-            + centers[(slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first]
-        )  # x - c_i
-        # (c_ndim, ...(f), B, ...)
-        x = xp.moveaxis(x, -1, -ndim_first - 1)
-        return -uin(x)
+    if uin is None:
+        f_expansion = None
+    else:
+        # boundary condition
+        def f(spherical: Mapping[TSpherical, Array]) -> Array:
+            # (c_ndim, ...(f), ..., B)
+            x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (ndim_first + 1)]
+            x = (
+                radii * x
+                + centers[
+                    (slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first
+                ]
+            )  # x - c_i
+            # (c_ndim, ...(f), B, ...)
+            x = xp.moveaxis(x, -1, -ndim_first - 1)
+            return -uin(x)
 
-    # (B, ..., harm)
-    f_expansion = ush.expand(
-        c,
-        f,
-        does_f_support_separation_of_variables=False,
-        n_end=n_end,
-        n=n_end,
-        phase=ush.Phase(0),
-        xp=xp,
-    )
-    # (..., B, harm)
-    f_expansion = xp.moveaxis(f_expansion, 0, -2)
+        # (B, ..., harm)
+        f_expansion = ush.expand(
+            c,
+            f,
+            does_f_support_separation_of_variables=False,
+            n_end=n_end,
+            n=n_end,
+            phase=ush.Phase(0),
+            xp=xp,
+        )
+        # (..., B, harm)
+        f_expansion = xp.moveaxis(f_expansion, 0, -2)
 
     # compute SL and DL, [..., B, harm1, ..., harmN]
     # (sizes except for B and harm_root are 1)
-    use_matrix = n_spheres is None or n_spheres > 1 or force_matrix
+    use_matrix = uin is None or n_spheres is None or n_spheres > 1 or force_matrix
 
     # compute a
     if not use_matrix:
@@ -510,7 +516,10 @@ def biem(
         )
         SD_coef = D_coef - 1j * eta * S_coef
         SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
-        density = f_expansion / SD_coef
+        if f_expansion is None:
+            density = None
+        else:
+            density = f_expansion / SD_coef
         matrix = None
     else:
         # (e_ndim, ..., B, B')
@@ -585,12 +594,19 @@ def biem(
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']
         matrix = xp.moveaxis(matrix, -3, -2)
         # [..., B, harm, B', harm'] and [..., B, harm]
-        density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
+        if f_expansion is None:
+            density = None
+        else:
+            density = btensorsolve(matrix, f_expansion, num_batch_axes=ndim_first)
 
-    def uin_wrapped(x: Array, /, *, expand_x: bool = True) -> Array:
-        if expand_x:
-            x = x[(...,) + (None,) * ndim_first]
-        return uin(x)
+    if uin is None:
+        uin_wrapped = None
+    else:
+
+        def uin_wrapped(x: Array, /, *, expand_x: bool = True) -> Array:
+            if expand_x:
+                x = x[(...,) + (None,) * ndim_first]
+            return uin(x)
 
     return BIEMResultCalculator(
         c=c,

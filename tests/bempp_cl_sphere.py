@@ -80,10 +80,11 @@ def bempp_cl_sphere(
         points = np.stack((x, y, z), axis=0)
         slp = single_layer_potential(space, points, k)
         val = slp * neumann_fun
+        val = val[0, ...]  # (...,)
         points_ = np.moveaxis(points, 0, -1)  # (..., 3)
         val[
             np.any(
-                np.linalg.norm(points_[..., :, None] - centers_[:, None, :], axis=-1) < radii_,
+                np.linalg.norm(points_[..., None, :] - centers_, axis=-1) < radii_,
                 axis=-1,
             )
         ] = np.nan
