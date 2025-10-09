@@ -75,7 +75,7 @@ def plot_biem(
     )
     cartesian = c.to_cartesian(spherical, as_array=True)
     if biem_res.uin is None:
-        uin = xp.full_like(x, xp.nan, dtype=xp.complex128)
+        uin = xp.zeros_like(cartesian[0])
     else:
         uin = biem_res.uin(cartesian)
     uscateach = biem_res.uscat(cartesian, per_ball=True)
