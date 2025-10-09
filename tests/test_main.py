@@ -55,7 +55,7 @@ def test_biem(xp: ArrayNamespaceFull, branching_types: str) -> None:
 def test_match(xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float) -> None:
     if IS_CI and h < 0.1:
         pytest.skip("Skip expensive test in CI")
-    k = xp.random.random_uniform(0.5, 2.0)
+    k = xp.random.random_uniform(0.5, 2.0, ())
     k = xp.asarray(k)
     for _ in range(100):
         centers = xp.random.random_uniform(-1, 1, (n_spheres, 3))

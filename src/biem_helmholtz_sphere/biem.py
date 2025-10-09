@@ -201,7 +201,7 @@ def _check_biem_inputs(
         eta = xp.asarray(eta)
 
     # check decoupling parameter
-    if xp.any(xp.imag(eta) != 0):
+    if not xp.can_cast(eta.dtype, xp.float64):
         raise ValueError("The decoupling parameter must be real.")
     if xp.any(eta == 0):
         warnings.warn(
@@ -212,7 +212,9 @@ def _check_biem_inputs(
             UserWarning,
             stacklevel=2,
         )
-    if xp.any((xp.imag(k) < 0) | (eta * xp.real(k) < 0)):
+    if xp.any(
+        ((not xp.can_cast(eta.dtype, xp.float64)) and xp.imag(k) < 0) | (eta * xp.real(k) < 0)
+    ):
         warnings.warn(
             "The solution may be incorrectif not (Im k >= 0 and eta Re k >= 0).",
             UserWarning,
