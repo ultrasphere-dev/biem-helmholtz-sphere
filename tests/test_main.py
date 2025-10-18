@@ -11,7 +11,7 @@ from ultrasphere import create_from_branching_types
 from biem_helmholtz_sphere.biem import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.plot import plot_biem
 
-from .bempp_cl_sphere import bempp_cl_sphere
+from ..src.biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
 
 IS_CI = environ.get("CI") in ("true", "1", "yes")
 

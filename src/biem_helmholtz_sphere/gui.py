@@ -216,7 +216,7 @@ def serve() -> None:
             return None
         res: BIEMResultCalculator[Any, Any] = biem(
             c,
-            plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
+            uin=plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
             k=k,
             n_end=n_end,
             eta=eta,

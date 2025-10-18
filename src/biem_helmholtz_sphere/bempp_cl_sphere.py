@@ -69,7 +69,7 @@ def bempp_cl_sphere(
     lhs = single_layer(space, space, space, k)
 
     @complex_callable
-    def f(x, n, domain_index, result):
+    def f(x: Any, n: Any, domain_index: Any, result: Any) -> None:
         result[0] = -np.exp(1j * k * x[0])
 
     rhs = GridFunction(space, fun=f)
@@ -89,5 +89,7 @@ def bempp_cl_sphere(
             )
         ] = np.nan
         return val
+
+    inner.grid = grid  #  type: ignore
 
     return inner
