@@ -11,23 +11,26 @@ license = { text = "MIT" }
 authors = [
   { name = "ultrasphere-dev", email = "34j.95a2p@simplelogin.com" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Developers",
   "Natural Language :: English",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries",
 ]
 
 dependencies = [
+  "array-api-compat>=1.11.2",
+  "array-api-extra>=0.9.0",
+  "attrs>=25.3.0",
+  "batch-tensorsolve>=1.0.1",
   "rich>=10",
   "typer>=0.15,<1",
+  "types-array-api>=1.1.4",
+  "ultrasphere-harmonics>=1.2.0",
 ]
 urls."Bug Tracker" = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere/issues"
 urls.Changelog = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere/blob/main/CHANGELOG.md"
@@ -35,8 +38,18 @@ urls.documentation = "https://biem-helmholtz-sphere.readthedocs.io"
 urls.repository = "https://github.com/ultrasphere-dev/biem-helmholtz-sphere"
 scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 
+[project.optional-dependencies]
+cli = [
+    "kaleido>=1.1.0",
+    "pandas>=2.3.3",
+    "panel>=1.8.1",
+    "plotly>=6.3.1",
+    "torch>=2.8.0",
+]
+
 [dependency-groups]
 dev = [
+  "bempp-cl>=0.4.2",
   "pytest>=8,<9",
   "pytest-cov>=7,<8",
 ]
@@ -48,7 +61,7 @@ docs = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 lint.select = [
   "B",   # flake8-bugbear
   "D",   # flake8-docstrings
