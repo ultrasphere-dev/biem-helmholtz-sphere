@@ -9,5 +9,5 @@
 
 cd biem-helmholtz-sphere
 git pull
-uvx poetry install
-uvx poetry run biem-helmholtz-sphere-resonance
+uv run biem-helmholtz-sphere jascome
+uv run biem-helmholtz-sphere jascome-bempp

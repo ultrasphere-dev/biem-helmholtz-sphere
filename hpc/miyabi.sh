@@ -7,4 +7,5 @@
 
 cd biem-helmholtz-sphere-1
 git pull
-~/.local/bin/uv run biem_helmholtz_sphere.resonance
+~/.local/bin/uv run biem-helmholtz-sphere jascome
+~/.local/bin/uv run biem-helmholtz-sphere jascome-bempp
