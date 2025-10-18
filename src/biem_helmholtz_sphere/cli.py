@@ -80,6 +80,7 @@ def jascome(
                     ),
                     radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
                     kind="outer",
+                    translational_coefficients_method="triplet",
                 )
                 uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
                 with Path("jascome_output.csv").open("a") as f:
@@ -134,3 +135,7 @@ def jascome_clean() -> None:
         # branching type as column
         group = group.pivot(index="n", columns="branching_types", values="uscat").reset_index()
         group.to_csv(f"jascome_output_{dim}d.csv", index=False)
+    df = pd.read_csv("jascome_bempp_output.csv")
+    df = df[["n_elements", "uscat"]]
+    df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
+    df.to_csv("jascome_bempp_output_clean.csv", index=False)

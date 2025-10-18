@@ -181,7 +181,7 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
         )
 
 
-def _check_biem_inputs(
+def _check_biem_inputs[TSpherical, TCartesian](
     c: SphericalCoordinates[TSpherical, TCartesian],
     centers: Array,
     radii: Array,
@@ -351,7 +351,7 @@ def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]
     return inner
 
 
-def biem(
+def biem[TSpherical, TCartesian](
     c: SphericalCoordinates[TSpherical, TCartesian],
     /,
     *,
@@ -363,6 +363,7 @@ def biem(
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
     force_matrix: bool = False,
+    translational_coefficients_method: Literal["gumerov", "plane_wave", "triplet"] | None = None,
 ) -> BIEMResultCalculator[TSpherical, TCartesian]:
     r"""
     Boundary Integral Equation Method (BIEM) for the Helmholtz equation.
@@ -435,6 +436,11 @@ def biem(
     force_matrix : bool, optional
         Whether to use linear equation solver to compute the solution
         even if there is only one sphere, by default False.
+    translational_coefficients_method : Literal["gumerov", "plane_wave", "triplet"] | None
+        The method to compute the translation coefficients.
+        If None, the fastest method is chosen automatically.
+        "gumerov" is only available for branching type "ba".
+        "plane_wave" is only available when `is_type_same` is True.
 
     Returns
     -------
@@ -536,6 +542,7 @@ def biem(
             phase=ush.Phase(0),
             k=k[..., None, None],
             is_type_same=False,
+            method=translational_coefficients_method,
         )
         # (B,) -> (..., B, B', harm, harm')
         ball_current = xp.arange(n_spheres)[
