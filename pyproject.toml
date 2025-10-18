@@ -4,7 +4,7 @@ requires = [ "setuptools" ]
 
 [project]
 name = "biem-helmholtz-sphere"
-version = "0.0.0"
+version = "1.0.0"
 description = "Acoustic scattering from multiple n-spheres in NumPy / PyTorch"
 readme = "README.md"
 license = { text = "MIT" }
@@ -50,13 +50,13 @@ cli = [
 dev = [
   "bempp-cl>=0.4.2",
   "pytest>=8,<9",
-  "pytest-cov>=6,<7",
+  "pytest-cov>=7,<8",
 ]
 docs = [
   "furo>=2023.5.20; python_version>='3.11'",
   "myst-parser>=0.16; python_version>='3.11'",
   "sphinx>=4; python_version>='3.11'",
-  "sphinx-autobuild>=2024,<2025; python_version>='3.11'",
+  "sphinx-autobuild>=2025,<2026; python_version>='3.11'",
 ]
 
 [tool.ruff]
