@@ -126,11 +126,11 @@ def jascome_clean() -> None:
     df = pd.read_csv("jascome_output.csv")
     df = df[["branching_types", "n_end", "uscat"]]
     df["dimension"] = df["branching_types"].apply(lambda x: create_from_branching_types(x).c_ndim)
-    df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):.8f}").str.replace("j", "i")
-    print(df.info())
+    df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
+    df["n"] = df["n_end"] - 1
     dfg = df.groupby("dimension")
     for dim, group in dfg:
-        group = group.drop(columns="dimension")
+        group = group.drop(columns=["dimension", "n_end"])
         # branching type as column
-        group = group.pivot(index="n_end", columns="branching_types", values="uscat").reset_index()
+        group = group.pivot(index="n", columns="branching_types", values="uscat").reset_index()
         group.to_csv(f"jascome_output_{dim}d.csv", index=False)
