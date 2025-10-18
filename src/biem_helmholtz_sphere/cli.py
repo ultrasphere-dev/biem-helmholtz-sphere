@@ -42,6 +42,12 @@ def jascome(
         from array_api_compat import numpy as xp  # type: ignore
     elif backend == "torch":
         from array_api_compat import torch as xp  # type: ignore
+    if "float64" in dtype or "complex128" in dtype:
+        dtype = xp.float64
+    elif "float32" in dtype or "complex64" in dtype:
+        dtype = xp.float32
+    else:
+        raise ValueError(f"Unsupported dtype: {dtype}")
     with Path("jascome_output.csv").open("w") as f:
         f.write(
             "branching_types,n_end,uscat,device,dtype,"
