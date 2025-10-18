@@ -162,6 +162,7 @@ dependencies = [
 [package.optional-dependencies]
 cli = [
     { name = "kaleido" },
+    { name = "pandas" },
     { name = "panel" },
     { name = "plotly" },
     { name = "torch" },
@@ -187,6 +188,7 @@ requires-dist = [
     { name = "attrs", specifier = ">=25.3.0" },
     { name = "batch-tensorsolve", specifier = ">=1.0.1" },
     { name = "kaleido", marker = "extra == 'cli'", specifier = ">=1.1.0" },
+    { name = "pandas", marker = "extra == 'cli'", specifier = ">=2.3.3" },
     { name = "panel", marker = "extra == 'cli'", specifier = ">=1.8.1" },
     { name = "plotly", marker = "extra == 'cli'", specifier = ">=6.3.1" },
     { name = "rich", specifier = ">=10" },

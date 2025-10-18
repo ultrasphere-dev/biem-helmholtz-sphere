@@ -43,7 +43,10 @@ def jascome(
     elif backend == "torch":
         from array_api_compat import torch as xp  # type: ignore
     with Path("jascome_output.csv").open("w") as f:
-        f.write("branching_types,n_end,uscat_norm\n")
+        f.write(
+            "branching_types,n_end,uscat,device,dtype,"
+            "density_dtype,density_device,uscat_dtype,uscat_device\n"
+        )
     for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
         try:
             for n_end in tqdm_rich(list(range(1, 10)), position=1, leave=False):
@@ -99,7 +102,7 @@ def jascome_bempp(
     import numpy as np
 
     with Path("jascome_bempp_output.csv").open("w") as f:
-        f.write("h,n_elements,uscat_norm\n")
+        f.write("h,n_elements,uscat\n")
     for h in tqdm_rich((2.0 ** -np.arange(1, int(-np.log2(min_h)) + 1)), position=0):
         calc = bempp_cl_sphere(
             k=1.0,
@@ -113,3 +116,21 @@ def jascome_bempp(
         uscat = calc(np.asarray((0.0,)), np.asarray((0.0,)), np.asarray((0.0,)))
         with Path("jascome_bempp_output.csv").open("a") as f:
             f.write(f"{h},{calc.grid.number_of_elements},{complex(uscat)}\n")  # type: ignore
+
+
+@app.command()
+def jascome_clean() -> None:
+    """Clean output files for JASCOME examples."""
+    import pandas as pd
+
+    df = pd.read_csv("jascome_output.csv")
+    df = df[["branching_types", "n_end", "uscat"]]
+    df["dimension"] = df["branching_types"].apply(lambda x: create_from_branching_types(x).c_ndim)
+    df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):.8f}").str.replace("j", "i")
+    print(df.info())
+    dfg = df.groupby("dimension")
+    for dim, group in dfg:
+        group = group.drop(columns="dimension")
+        # branching type as column
+        group = group.pivot(index="n_end", columns="branching_types", values="uscat").reset_index()
+        group.to_csv(f"jascome_output_{dim}d.csv", index=False)

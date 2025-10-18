@@ -1,4 +1,4 @@
-branching_types,n_end,uscat_norm,device,dtype,density_dtype,density_device,uscat_dtype,uscat_device
+branching_types,n_end,uscat,device,dtype,density_dtype,density_device,uscat_dtype,uscat_device
 caa,1,(-0.3669624119433013-0.40697555875254243j),cpu,float64,complex128,cpu,complex128,cpu
 caa,2,(-0.44076872289180896-0.4279663938583859j),cpu,float64,complex128,cpu,complex128,cpu
 caa,3,(-0.45490115562643646-0.42320963989669524j),cpu,float64,complex128,cpu,complex128,cpu
