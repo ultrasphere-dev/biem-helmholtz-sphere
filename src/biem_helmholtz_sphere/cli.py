@@ -100,15 +100,16 @@ def jascome_bempp(
 
     with Path("jascome_bempp_output.csv").open("w") as f:
         f.write("h,n_elements,uscat_norm\n")
-        for h in np.logspace(np.log10(0.5), np.log10(min_h), 5):
-            calc = bempp_cl_sphere(
-                k=1.0,
-                h=h,
-                centers=(
-                    (0.0, 2.0, 0.0),
-                    (0.0, -2.0, 0.0),
-                ),
-                radii=(1.0, 1.0),
-            )
-            uscat = calc(0.0, 0.0, 0.0)
+    for h in tqdm_rich(np.logspace(np.log10(0.5), np.log10(min_h), 5)):
+        calc = bempp_cl_sphere(
+            k=1.0,
+            h=h,
+            centers=(
+                (0.0, 2.0, 0.0),
+                (0.0, -2.0, 0.0),
+            ),
+            radii=(1.0, 1.0),
+        )
+        uscat = calc(np.asarray((0.0,)), np.asarray((0.0,)), np.asarray((0.0,)))
+        with Path("jascome_bempp_output.csv").open("a") as f:
             f.write(f"{h},{calc.grid.number_of_elements},{complex(uscat)}\n")  # type: ignore
