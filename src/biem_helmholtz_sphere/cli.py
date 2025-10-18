@@ -100,7 +100,7 @@ def jascome_bempp(
 
     with Path("jascome_bempp_output.csv").open("w") as f:
         f.write("h,n_elements,uscat_norm\n")
-    for h in tqdm_rich(np.logspace(np.log10(0.5), np.log10(min_h), 5)):
+    for h in tqdm_rich((2.0 ** -np.arange(1, int(-np.log2(min_h)) + 1)), position=0):
         calc = bempp_cl_sphere(
             k=1.0,
             h=h,

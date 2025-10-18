@@ -9,5 +9,5 @@
 
 cd biem-helmholtz-sphere
 git pull
-uv run biem-helmholtz-sphere jascome
-uv run biem-helmholtz-sphere jascome-bempp
+uv run biem-helmholtz-sphere jascome --branching-types="a,ba,bpa,bba,bpbpa,caa"
+uv run biem-helmholtz-sphere jascome-bempp --min-h=0.01
