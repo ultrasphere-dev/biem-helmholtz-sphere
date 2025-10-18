@@ -33,10 +33,10 @@ def jascome(
     backend: Literal["numpy", "torch"] = "numpy",
     device: str = "cpu",
     dtype: str = "float64",
-    btanching_types: str = "a,ba,bpa,bba,bpbpa,caa",
+    branching_types: str = "a,ba,bpa,bba,bpbpa,caa",
 ) -> None:
     """Numerical examples for JASCOME."""
-    branchin_types = btanching_types.split(",")
+    branchin_types = branching_types.split(",")
     xp: ArrayNamespaceFull
     if backend == "numpy":
         from array_api_compat import numpy as xp  # type: ignore
