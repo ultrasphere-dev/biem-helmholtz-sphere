@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 
 [[package]]
@@ -105,15 +105,15 @@ wheels = [
 
 [[package]]
 name = "batch-tensorsolve"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "array-api-compat" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/ef/cfe560278bec612a8c2bcd35b194ae5e9f8669c67aa5e9cc92afd032a672/batch_tensorsolve-1.0.0.tar.gz", hash = "sha256:875a1cf3d570b8dd7b43900264bbfb7f15510e4783ba57397312eff5a1414152", size = 8777, upload-time = "2025-05-26T17:05:59.594Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/46/4a556a2d63d61a9251b732327a39a08b302a9b00c6f8261650139355f3c2/batch_tensorsolve-1.0.1.tar.gz", hash = "sha256:85d8022bdbf46d85899b9297921094e3563455b7ebb53c187b1432df411e8ab8", size = 8826, upload-time = "2025-10-18T00:51:32.376Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/aa/25c14b31af260422be4dac3280dfe5e8de6ae5d5184a0a60c62f459eaaa0/batch_tensorsolve-1.0.0-py3-none-any.whl", hash = "sha256:6e5a3c8b269d36c43d89cbf9b940f312e70c270b409c39b8b7b0b3821c68516a", size = 6504, upload-time = "2025-05-26T17:05:58.303Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/2b/f18f438bc4c258eadbabd1f78b64d801d5801878715bd7cd0f4ebecfc8ac/batch_tensorsolve-1.0.1-py3-none-any.whl", hash = "sha256:f710235deb8a70603bdb2f6e0e2124ec1df11fa57e14d576ed0fbfa9d7228bf0", size = 6515, upload-time = "2025-10-18T00:51:30.915Z" },
 ]
 
 [[package]]
@@ -185,7 +185,7 @@ requires-dist = [
     { name = "array-api-compat", specifier = ">=1.11.2" },
     { name = "array-api-extra", specifier = ">=0.9.0" },
     { name = "attrs", specifier = ">=25.3.0" },
-    { name = "batch-tensorsolve", specifier = ">=1.0.0" },
+    { name = "batch-tensorsolve", specifier = ">=1.0.1" },
     { name = "kaleido", marker = "extra == 'cli'", specifier = ">=1.1.0" },
     { name = "panel", marker = "extra == 'cli'", specifier = ">=1.8.1" },
     { name = "plotly", marker = "extra == 'cli'", specifier = ">=6.3.1" },
