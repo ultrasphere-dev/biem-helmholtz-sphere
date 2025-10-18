@@ -22,5 +22,5 @@ ssh:
 
 # run the script (group drive)
 run:
-    # scp {{script_path}} {{remote}}:{{group_dir}}
+    scp {{script_path}} {{remote}}:{{group_dir}}
     ssh -t {{remote}} "cd {{group_dir}}; bash -l -c 'qsub -W group_list={{group}} $(basename {{script_path}})'"

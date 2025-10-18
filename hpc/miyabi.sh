@@ -7,5 +7,6 @@
 
 cd biem-helmholtz-sphere
 git pull
+~/.local/bin/uv sync
 ~/.local/bin/uv run biem-helmholtz-sphere jascome --backend=torch --device=cuda
 ~/.local/bin/uv run biem-helmholtz-sphere jascome-bempp
