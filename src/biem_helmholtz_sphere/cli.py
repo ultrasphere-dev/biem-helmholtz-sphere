@@ -21,10 +21,13 @@ def serve() -> None:
 
 @app.command()
 def jascome(
-    backend: Literal["numpy", "torch"] = "numpy", device: str = "cpu", dtype: str = "float32"
+    backend: Literal["numpy", "torch"] = "numpy",
+    device: str = "cpu",
+    dtype: str = "float32",
+    btanching_types: str = "a,ba,bpa,bba,bpbpa,caa",
 ) -> None:
     """Numerical examples for JASCOME."""
-    branchin_types = ["a", "ba", "bpa", "bba", "bpbpa", "caa"]
+    branchin_types = btanching_types.split(",")
     xp: ArrayNamespaceFull
     if backend == "numpy":
         from array_api_compat import numpy as xp  # type: ignore
@@ -33,40 +36,44 @@ def jascome(
     with Path("jascome_output.csv").open("w") as f:
         f.write("branching_types,n_end,uscat_norm\n")
         for btype in reversed(branchin_types):
-            for n_end in range(10):
-                c = create_from_branching_types(btype)
-                calc: BIEMResultCalculator[Any, Any] = biem(
-                    c,
-                    uin=plane_wave(
+            try:
+                for n_end in range(10):
+                    c = create_from_branching_types(btype)
+                    calc: BIEMResultCalculator[Any, Any] = biem(
+                        c,
+                        uin=plane_wave(
+                            k=xp.asarray(1.0, device=device, dtype=dtype),
+                            direction=xp.asarray(
+                                (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
+                            ),
+                        ),
                         k=xp.asarray(1.0, device=device, dtype=dtype),
-                        direction=xp.asarray(
-                            (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
-                        ),
-                    ),
-                    k=xp.asarray(1.0, device=device, dtype=dtype),
-                    n_end=n_end,
-                    eta=xp.asarray(1.0, device=device, dtype=dtype),
-                    centers=xp.asarray(
-                        (
+                        n_end=n_end,
+                        eta=xp.asarray(1.0, device=device, dtype=dtype),
+                        centers=xp.asarray(
                             (
-                                0.0,
-                                2.0,
-                            )
-                            + (0.0,) * (c.c_ndim - 2),
-                            (
-                                0.0,
-                                -2.0,
-                            )
-                            + (0.0,) * (c.c_ndim - 2),
+                                (
+                                    0.0,
+                                    2.0,
+                                )
+                                + (0.0,) * (c.c_ndim - 2),
+                                (
+                                    0.0,
+                                    -2.0,
+                                )
+                                + (0.0,) * (c.c_ndim - 2),
+                            ),
+                            device=device,
+                            dtype=dtype,
                         ),
-                        device=device,
-                        dtype=dtype,
-                    ),
-                    radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
-                    kind="outer",
-                )
-                uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
-                f.write(f"{btype},{n_end},{complex(uscat)},{device},{dtype}\n")
+                        radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
+                        kind="outer",
+                    )
+                    uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
+                    f.write(f"{btype},{n_end},{complex(uscat)},{device},{dtype}\n")
+            except Exception as e:
+                print(e)
+                continue
 
 
 @app.command()
