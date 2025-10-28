@@ -68,7 +68,8 @@ def serve() -> None:
                 0: [0.0, 0.0],
                 1: [2.0, -2.0],
             }
-        )
+        ),
+        show_index=False,
     )
     r_plotw = pn.widgets.FloatInput(name="Plot radius", value=4)
     n_plotw = pn.widgets.IntSlider(name="Points to plot", value=60, start=1, end=200)
@@ -206,9 +207,10 @@ def serve() -> None:
         progressw.bar_color = "primary"
         c = create_from_branching_types(cstr)
         d = c.c_ndim
-        if d not in radiuscenter.columns:
+        if (d - 1) not in radiuscenter.columns:
             progressw.active = False
             progressw.bar_color = "danger"
+            progressw.value = 100
             return
         res = biem(
             c,
