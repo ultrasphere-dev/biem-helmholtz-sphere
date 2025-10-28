@@ -119,4 +119,7 @@ def plot_biem(
         color_continuous_midpoint=0,
         **plot_kwargs,
     )
+    plot_2d.update_layout(plot_bgcolor="black")
+    plot_2d.update_xaxes(showgrid=False)
+    plot_2d.update_yaxes(showgrid=False)
     return plot_2d
