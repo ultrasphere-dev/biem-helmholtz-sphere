@@ -105,21 +105,18 @@ def plot_biem(
         f"η={float(biem_res.eta):g}"
     )
 
-    max_abs = xp.max(xp.abs(uplot_re))
     plot_2d = px.imshow(
-        xp.moveaxis(uplot_re, -1, -2)[0, ...],
-        # animation_frame=0,
+        xp.moveaxis(uplot_re, -1, -2),
+        animation_frame=0,
         y=xp.squeeze(x),
         x=xp.squeeze(y),
-        zmin=-max_abs,
-        zmax=max_abs,
-        range_color=[-max_abs, max_abs],
         title=title,
         labels={
             "x": f"$x_{xaxis}$",
             "y": f"$x_{yaxis}$",
         },
         color_continuous_scale="RdBu_r",
+        color_continuous_midpoint=0,
         **plot_kwargs,
     )
     return plot_2d
