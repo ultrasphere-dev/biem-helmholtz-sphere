@@ -19,6 +19,8 @@ from .plot import plot_biem
 def serve() -> None:
     """Serve panel app."""
     xp: ArrayNamespaceFull = np
+    res: BIEMResultCalculator[Any, Any] | None = None
+    rescountw = pn.widgets.IntInput(name="Result count", value=0)
     # coordinates
     backendw = pn.widgets.ToggleGroup(
         name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
@@ -175,46 +177,35 @@ def serve() -> None:
         k_imw.param.value,
         etaw.param.value,
         force_matrixw.param.value,
-        plot_whichw.param.value,
         radiuscenterw.param.value,
         n_endw.param.value,
-        n_plotw.param.value,
-        n_tw.param.value,
-        r_plotw.param.value,
-        axisxw.param.value,
-        axisyw.param.value,
         kindw.param.value,
     )
-    def update_plot(
+    def update_sol(
         cstr: str,
         k_re: float,
         k_im: float,
         eta: float,
         force_matrix: bool,
-        plot_which: list[str],
         radiuscenter: Array,
         n_end: int,
-        n_plot: int,
-        n_t: int,
-        r_plot: float,
-        xaxis: int,
-        yaxis: int,
         kind: Literal["inner", "outer"],
-    ) -> pn.pane.Pane | None:
+    ) -> None:
+        nonlocal res
         if k_im != 0:
             k = complex(k_re, k_im)
         else:
             k = k_re
         progressw.value = 0
+        progressw.active = True
+        progressw.bar_color = "primary"
         c = create_from_branching_types(cstr)
         d = c.c_ndim
         radiuscenter = xp.asarray(radiuscenter)
         if radiuscenter.shape[1] != d + 1:
-            # raise ValueError(
-            #     f"radiuscenter.shape[1] must be {d + 1}, but {radiuscenter.shape[1]}"
-            # )
+            progressw.bar_color = "danger"
             return None
-        res: BIEMResultCalculator[Any, Any] = biem(
+        res = biem(
             c,
             uin=plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
             k=k,
@@ -225,14 +216,39 @@ def serve() -> None:
             kind=kind,
             force_matrix=force_matrix,
         )
+        rescountw.value = rescountw.value + 1
+
+    @pn.depends(
+        plot_whichw.param.value,
+        n_plotw.param.value,
+        n_tw.param.value,
+        r_plotw.param.value,
+        axisxw.param.value,
+        axisyw.param.value,
+        rescountw.param.value,
+    )
+    def update_plot(
+        plot_which: list[str],
+        n_plot: int,
+        n_t: int,
+        r_plot: float,
+        xaxis: int,
+        yaxis: int,
+        _: int,
+    ) -> pn.pane.Pane | None:
+        nonlocal res
+        if res is None:
+            return None
         progressw.value = 50
+        progressw.active = True
+        progressw.bar_color = "secondary"
 
         # plot
         plot_2d = plot_biem(
             res,
             plot_uin="uin" in plot_which,
             plot_uscateach=xp.asarray(
-                [f"uscat{i}" in plot_which for i in range(radiuscenter.shape[0])]
+                [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])]
             ),
             xspace=(-r_plot, r_plot, n_plot),
             yspace=(-r_plot, r_plot, n_plot),
@@ -248,6 +264,8 @@ def serve() -> None:
         plot_2d.write_image("plot.png", scale=3)
         plot_2d.write_image("plot.jpg", scale=3)
         progressw.value = 100
+        progressw.active = False
+        progressw.bar_color = "success"
         return plot_2d
 
     layout = pn.Row(
@@ -258,10 +276,12 @@ def serve() -> None:
             g_plot,
             g_download,
         ),
+        update_backend,
         update_custom,
         update_d_from_custom,
         update_axis,
         update_plot_which,
+        update_sol,
         update_plot,
     )
     pn.serve(layout)

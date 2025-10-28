@@ -46,6 +46,10 @@ Install this via pip (or your favourite package manager):
 
 `pip install biem-helmholtz-sphere`
 
+## Usage
+
+```
+
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
@@ -67,3 +71,4 @@ This package was created with
 [Copier](https://copier.readthedocs.io/) and the
 [browniebroke/pypackage-template](https://github.com/browniebroke/pypackage-template)
 project template.
+```

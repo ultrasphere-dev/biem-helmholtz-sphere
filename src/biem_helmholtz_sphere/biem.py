@@ -80,11 +80,11 @@ class BIEMResultCalculatorProtocol[TSpherical, TCartesian](Protocol):
     uin: UinCallable | None
     """The incident field."""
     centers: Array
-    """The centers of the spheres."""
+    """The centers of the spheres of shape (..., B, c.c_ndim)."""
     radii: Array
-    """The radii of the spheres."""
+    """The radii of the spheres of shape (..., B)."""
     k: Array
-    """The wavenumber."""
+    """The wavenumber of shape (...)."""
     n_end: int
     """The maximum degree of the spherical harmonics expansion."""
     eta: Array
@@ -93,10 +93,10 @@ class BIEMResultCalculatorProtocol[TSpherical, TCartesian](Protocol):
     """The kind of the scattering problem."""
     density: Array | None = None
     """The flattened density of the BIEM
-    of shape [..., B, harm]."""
+    of shape (..., B, harm)."""
     matrix: Array | None = None
     """The flattened matrix of the BIEM
-    of shape [..., B, harm, B', harm']."""
+    of shape (..., B, harm, B', harm')."""
 
     def uscat(
         self,
@@ -146,11 +146,11 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
     uin: UinCallable | None = None
     """The incident field."""
     centers: Array
-    """The centers of the spheres."""
+    """The centers of the spheres of shape (..., B, c.c_ndim)."""
     radii: Array
-    """The radii of the spheres."""
+    """The radii of the spheres of shape (..., B)."""
     k: Array
-    """The wavenumber."""
+    """The wavenumber of shape (...)."""
     n_end: int
     """The maximum degree of the spherical harmonics expansion."""
     eta: Array
@@ -159,10 +159,10 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
     """The kind of the scattering problem."""
     density: Array | None = None
     """The flattened density of the BIEM
-    of shape [..., B, harm]."""
+    of shape (..., B, harm)."""
     matrix: Array | None = None
     """The flattened matrix of the BIEM
-    of shape [..., B, harm, B', harm']."""
+    of shape (..., B, harm, B', harm')."""
 
     def uscat(  # noqa: D102
         self,

@@ -1,4 +1,4 @@
-from logging import DEBUG, INFO, basicConfig, getLogger
+from logging import DEBUG, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
 
@@ -19,7 +19,7 @@ LOG = getLogger(__name__)
 
 @app.callback()
 def _main(verbose: bool = typer.Option(False, "--verbose", "-v")) -> None:
-    basicConfig(handlers=[RichHandler(rich_tracebacks=True)], level=DEBUG if verbose else INFO)
+    basicConfig(handlers=[RichHandler(rich_tracebacks=True)], level=DEBUG if verbose else WARNING)
 
 
 @app.command()
