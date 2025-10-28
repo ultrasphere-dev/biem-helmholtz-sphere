@@ -8,10 +8,9 @@ import pytest
 from array_api._2024_12 import ArrayNamespaceFull
 from ultrasphere import create_from_branching_types
 
+from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
 from biem_helmholtz_sphere.biem import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.plot import plot_biem
-
-from ..src.biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
 
 IS_CI = environ.get("CI") in ("true", "1", "yes")
 
@@ -52,9 +51,14 @@ def test_biem(xp: ArrayNamespaceFull, branching_types: str) -> None:
 
 @pytest.mark.parametrize("h, rtol", [(0.1, 2e-1), (0.05, 8e-2)])
 @pytest.mark.parametrize("n_spheres", [1, 3])
-def test_match(xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float) -> None:
+@pytest.mark.parametrize("alpha, beta", [(1.0, 0.0), (0.0, 1.0), (1.0, 1.0)])
+def test_match(
+    xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float, alpha: complex, beta: complex
+) -> None:
     if IS_CI and h < 0.1:
         pytest.skip("Skip expensive test in CI")
+    if h > 0.05 and n_spheres > 3:
+        pytest.skip("Skip unstable case")
     k = xp.random.random_uniform(0.5, 2.0, ())
     k = xp.asarray(k)
     for _ in range(100):
@@ -69,6 +73,12 @@ def test_match(xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float) ->
     else:
         raise RuntimeError("Failed to generate non-overlapping spheres")
     x = xp.random.random_uniform(-1, 1, (3, 100))
+    x = x[
+        :,
+        (
+            xp.linalg.vector_norm(x.T[:, None, :] - centers[None, :, :], axis=-1) > radii[None, :]
+        ).all(axis=-1),
+    ]
     calc: BIEMResultCalculator[Any, Any] = biem(
         create_from_branching_types("ba"),
         uin=plane_wave(k=k, direction=xp.asarray((1.0, 0.0, 0.0))),
@@ -78,6 +88,8 @@ def test_match(xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float) ->
         centers=centers,
         radii=radii,
         kind="outer",
+        alpha=alpha,
+        beta=beta,
     )
     uscat_actual = calc.uscat(x)
     calc_expected = bempp_cl_sphere(
@@ -85,6 +97,8 @@ def test_match(xp: ArrayNamespaceFull, n_spheres: int, h: float, rtol: float) ->
         h=h,
         centers=np.asarray(centers),
         radii=np.asarray(radii),
+        alpha=alpha,
+        beta=beta,
     )
     uscat_expected = calc_expected(x[0, ...], x[1, ...], x[2, ...])
     uscat_expected = xp.asarray(uscat_expected)

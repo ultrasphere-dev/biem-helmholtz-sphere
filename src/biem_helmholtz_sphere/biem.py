@@ -18,6 +18,60 @@ TCartesian = TypeVar("TCartesian")
 TSpherical = TypeVar("TSpherical")
 
 
+def max_memory(*, c_ndim: int, n_end: int, n_balls: int) -> int:
+    """
+    Maximum memory usage in bytes.
+
+    Parameters
+    ----------
+    c_ndim : int
+        The number of cartesian dimensions.
+    n_end : int
+        The maximum degree of the spherical harmonics expansion.
+    n_balls : int
+        The number of balls.
+
+    Returns
+    -------
+    int
+        The maximum memory usage in bytes.
+
+    """
+    _COMPLEX128_SIZE = 16  # bytes
+    if c_ndim <= 3:
+        return n_balls**2 * ush.harm_n_ndim_le(n_end, c_ndim=c_ndim) ** 2
+
+    def inner(c_ndim: int, n_end: int) -> int:
+        return (2 * n_end - 1) * n_end ** (c_ndim - 1)
+
+    return n_balls**2 * inner(c_ndim, n_end) ** 2 * inner(c_ndim, 2 * n_end) * _COMPLEX128_SIZE
+
+
+def max_n_end(*, c_ndim: int, memory_limit: int, n_balls: int) -> int:
+    """
+    Maximum n_end that fits in the given memory limit.
+
+    Parameters
+    ----------
+    c_ndim : int
+        The number of cartesian dimensions.
+    memory_limit : int
+        The memory limit in bytes.
+    n_balls : int
+        The number of balls.
+
+    Returns
+    -------
+    int
+        The maximum n_end.
+
+    """
+    for i in range(1000):
+        if max_memory(c_ndim=c_ndim, n_end=i, n_balls=n_balls) > memory_limit:
+            break
+    return i - 1
+
+
 class BIEMKwargs(TypedDict):
     """The kwargs for the BIEM."""
 
@@ -186,19 +240,27 @@ def _check_biem_inputs[TSpherical, TCartesian](
     centers: Array,
     radii: Array,
     k: Array,
-    eta: Array | None = None,
+    eta: Array | None,
+    alpha: Array | complex,
+    beta: Array | complex,
     /,
-) -> tuple[Array, Array, Array, Array]:
-    xp = array_namespace(centers, radii, k, eta)
+) -> tuple[Array, Array, Array, Array, Array, Array]:
+    xp = array_namespace(centers, radii, k, eta, alpha, beta)
 
     # convert to array
     centers = xp.asarray(centers)
     radii = xp.asarray(radii)
     k = xp.asarray(k)
+    alpha = xp.asarray(alpha)
+    beta = xp.asarray(beta)
     if eta is None:
         eta = xp.asarray(1.0)[(None,) * k.ndim]
     else:
         eta = xp.asarray(eta)
+    if alpha.ndim == 0:
+        alpha = alpha[(None,) * (k.ndim + 1)]
+    if beta.ndim == 0:
+        beta = beta[(None,) * (k.ndim + 1)]
 
     # check decoupling parameter
     if not xp.can_cast(eta.dtype, xp.float64):
@@ -227,7 +289,9 @@ def _check_biem_inputs[TSpherical, TCartesian](
             f"{k.ndim=}, {eta.ndim=}, {centers.ndim - 2=}, {radii.ndim -1=}are not the same."
         )
     try:
-        xpx.broadcast_shapes(k.shape, eta.shape, centers.shape[:-2], radii.shape[:-1])
+        xpx.broadcast_shapes(
+            k.shape, eta.shape, centers.shape[:-2], radii.shape[:-1], alpha.shape, beta.shape
+        )
     except Exception as e:
         raise ValueError(
             "Shapes of k, eta and "
@@ -236,17 +300,21 @@ def _check_biem_inputs[TSpherical, TCartesian](
             f"{tuple(k.shape)=}\n"
             f"{tuple(eta.shape)=}\n"
             f"{tuple(centers.shape)=}\n"
-            f"{tuple(radii.shape)=}"
+            f"{tuple(radii.shape)=}\n"
+            f"{tuple(alpha.shape)=}\n"
+            f"{tuple(beta.shape)=}"
         ) from e
 
     try:
-        xpx.broadcast_shapes(centers.shape[:-1], radii.shape)
+        xpx.broadcast_shapes(centers.shape[:-1], radii.shape, alpha.shape, beta.shape)
     except Exception as e:
         raise ValueError(
             "centers.shape[:-1] and radii.shape "
             "are not broadcastable\n"
             f"{tuple(centers.shape)=}\n"
-            f"{tuple(radii.shape)=}"
+            f"{tuple(radii.shape)=}\n"
+            f"{tuple(alpha.shape)=}\n"
+            f"{tuple(beta.shape)=}"
         ) from e
 
     if centers.shape[-1] != c.c_ndim:
@@ -254,7 +322,7 @@ def _check_biem_inputs[TSpherical, TCartesian](
             f"The last dimension of centers must be {c.c_ndim=}, but got {centers.shape[-1]}"
         )
 
-    return centers, radii, k, eta
+    return centers, radii, k, eta, alpha, beta
 
 
 def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
@@ -359,6 +427,8 @@ def biem[TSpherical, TCartesian](
     radii: Array,
     k: Array,
     n_end: int,
+    alpha: Array | complex = 1.0,
+    beta: Array | complex = 0.0,
     uin: Callable[[Array], Array] | None = None,
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
@@ -429,6 +499,12 @@ def biem[TSpherical, TCartesian](
         The wavenumber of shape (...).
     n_end : int
         The maximum degree of the spherical harmonics expansion.
+    alpha : Array | complex, optional
+        The coefficient of the Dirichlet part of the boundary condition
+        of shape (..., B), by default 1.0.
+    beta : Array | complex, optional
+        The coefficient of the Neumann part of the boundary condition
+        of shape (..., B), by default 0.0.
     eta : Array , optional
         The decoupling parameter of shape (...), by default 1.
     kind : Literal["inner", "outer"], optional
@@ -450,7 +526,7 @@ def biem[TSpherical, TCartesian](
         Each field has shape [...(x), ...(first), harm1, ..., harmN]
 
     """
-    centers, radii, k, eta = _check_biem_inputs(c, centers, radii, k, eta)
+    centers, radii, k, eta, alpha, beta = _check_biem_inputs(c, centers, radii, k, eta, alpha, beta)
     xp = array_namespace(centers, radii, k, eta)
 
     # [..., B, v] -> [v, ..., B]
@@ -510,7 +586,7 @@ def biem[TSpherical, TCartesian](
             y_abs=radii[(...,) + (None,) * c.s_ndim],
             x_abs=radii[(...,) + (None,) * c.s_ndim],
             derivative="S",
-            for_func="harmonics",
+            for_func="solution",
         )
         D_coef = potential_coef(
             n,
@@ -520,9 +596,21 @@ def biem[TSpherical, TCartesian](
             x_abs=radii[(...,) + (None,) * c.s_ndim],
             derivative="D",
             limit=False,
-            for_func="harmonics",
+            for_func="solution",
         )
         SD_coef = D_coef - 1j * eta * S_coef
+        SD_coef *= (
+            alpha
+            * shn1(n, d, k[(...,) + (None,) * (c.s_ndim + 1)] * radii[(...,) + (None,) * c.s_ndim])
+            + beta
+            * shn1(
+                n,
+                d,
+                k[(...,) + (None,) * (c.s_ndim + 1)] * radii[(...,) + (None,) * c.s_ndim],
+                derivative=True,
+            )
+            * k[(...,) + (None,) * (c.s_ndim + 1)]
+        )
         SD_coef = ush.flatten_harmonics(c, SD_coef, n_end=n_end, include_negative_m=True)
         if f_expansion is None:
             density = None
@@ -583,21 +671,47 @@ def biem[TSpherical, TCartesian](
         matrix = SD_coef * xp.where(
             ball_current == ball_to_add,
             xpx.create_diagonal(
-                ush.harmonics_regular_singular_component(
+                (
+                    alpha[..., :, None, None]
+                    * ush.harmonics_regular_singular_component(
+                        c,
+                        {"r": radius_current},
+                        n_end=n_end,
+                        k=k[..., None, None],
+                        type="singular",
+                    )
+                    + beta[..., :, None, None]
+                    * ush.harmonics_regular_singular_component(
+                        c,
+                        {"r": radius_current},
+                        n_end=n_end,
+                        k=k[..., None, None],
+                        type="singular",
+                        derivative=True,
+                    )
+                    * k[..., None, None, None]
+                ),
+            ),
+            xp.moveaxis(translation_coef, -1, -2)
+            * (
+                alpha[..., :, None, None]
+                * ush.harmonics_regular_singular_component(
                     c,
                     {"r": radius_current},
                     n_end=n_end,
                     k=k[..., None, None],
-                    type="singular",
+                    type="regular",
                 )
-            ),
-            xp.moveaxis(translation_coef, -1, -2)
-            * ush.harmonics_regular_singular_component(
-                c,
-                {"r": radius_current},
-                n_end=n_end,
-                k=k[..., None, None],
-                type="regular",
+                + beta[..., :, None, None]
+                * ush.harmonics_regular_singular_component(
+                    c,
+                    {"r": radius_current},
+                    n_end=n_end,
+                    k=k[..., None, None],
+                    type="regular",
+                    derivative=True,
+                )
+                * k[..., None, None, None]
             )[..., :, None],
         )
         # [..., B, B', harm, harm'] -> [..., B, harm, B', harm']

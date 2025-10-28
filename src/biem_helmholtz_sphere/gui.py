@@ -1,5 +1,6 @@
 from typing import Any, Literal
 
+import pandas as pd
 import panel as pn
 from array_api._2024_12 import Array, ArrayNamespaceFull
 from array_api_compat import numpy as np
@@ -12,7 +13,7 @@ from ultrasphere import (
     create_standard_prime,
 )
 
-from .biem import BIEMResultCalculator, biem, plane_wave
+from .biem import BIEMResultCalculator, biem, max_n_end, plane_wave
 from .plot import plot_biem
 
 
@@ -58,20 +59,16 @@ def serve() -> None:
     plot_whichw = pn.widgets.ToggleGroup(
         name="Plot", options=["uin", "uscat0"], value=["uin", "uscat0"]
     )
-    plot_derw = pn.widgets.Toggle(name="Directional derivative to x", value=False)
-    radiuscenterw = pn.widgets.ArrayInput(
-        name="List of (radius, *center)",
-        value=xp.asarray(
-            [
-                [
-                    1,
-                    0,
-                    -2,
-                ],
-                [1, 0, 2],
-            ]
-        ),
-        placeholder="[[radius, x0, x1, ...]]",
+    radiuscenterw = pn.widgets.DataFrame(
+        pd.DataFrame(
+            {
+                "alpha": [1.0, 1.0],
+                "beta": [0.0, 0.0],
+                "radius": [1.0, 1.0],
+                0: [0.0, 0.0],
+                1: [2.0, -2.0],
+            }
+        )
     )
     r_plotw = pn.widgets.FloatInput(name="Plot radius", value=4)
     n_plotw = pn.widgets.IntSlider(name="Points to plot", value=60, start=1, end=200)
@@ -82,7 +79,6 @@ def serve() -> None:
     g_plot = pn.WidgetBox(
         "## Plot",
         plot_whichw,
-        plot_derw,
         radiuscenterw,
         r_plotw,
         n_plotw,
@@ -140,33 +136,42 @@ def serve() -> None:
             if dw.value != d:
                 dw.value = d
 
+    @pn.depends(dw.param.value, radiuscenterw.param.value)
+    def update_n_end(d: int, radiuscenter: pd.DataFrame) -> None:
+        from psutil import virtual_memory
+
+        n_endw.end = min(
+            max_n_end(
+                c_ndim=d, memory_limit=virtual_memory().available // 16, n_balls=len(radiuscenter)
+            ),
+            20,
+        )
+        n_endw.value = min(n_endw.value, n_endw.end)
+
     @pn.depends(dw.param.value)
     def update_axis(d: int) -> None:
         axisxw.end = d - 1
         axisyw.end = d - 1
-        if radiuscenterw.value.shape[1] != d + 1:
-            if radiuscenterw.value.shape[1] > d + 1:
-                new = radiuscenterw.value[:, : d + 1]
+        radiuscenterw_int_columns = [
+            col for col in radiuscenterw.value.columns if isinstance(col, int)
+        ]
+        if len(radiuscenterw_int_columns) != d:
+            if len(radiuscenterw_int_columns) > d:
+                new = radiuscenterw.value.drop(columns=radiuscenterw_int_columns[d:])
             else:
-                new = xp.concat(
-                    [
+                new = pd.concat(
+                    (
                         radiuscenterw.value,
-                        xp.zeros(
-                            (
-                                radiuscenterw.value.shape[0],
-                                d + 1 - radiuscenterw.value.shape[1],
-                            )
-                        ),
-                    ],
+                        pd.DataFrame(dtype=float, columns=range(len(radiuscenterw_int_columns), d)),
+                    ),
                     axis=1,
-                )
+                ).fillna(0)
             radiuscenterw.value = new
 
     @pn.depends(radiuscenterw.param.value)
-    def update_plot_which(radiuscenter: Array) -> None:
-        radiuscenter = xp.asarray(radiuscenter)
+    def update_plot_which(radiuscenter: pd.DataFrame) -> None:
         old_options = plot_whichw.options
-        new_options = ["uin"] + [f"uscat{i}" for i in range(radiuscenter.shape[0])]
+        new_options = ["uin"] + [f"uscat{i}" for i in range(len(radiuscenter))]
         plot_whichw.options = new_options
         if len(old_options) < len(new_options):
             plot_whichw.value = plot_whichw.value + new_options[len(old_options) :]
@@ -201,18 +206,18 @@ def serve() -> None:
         progressw.bar_color = "primary"
         c = create_from_branching_types(cstr)
         d = c.c_ndim
-        radiuscenter = xp.asarray(radiuscenter)
-        if radiuscenter.shape[1] != d + 1:
+        if d not in radiuscenter.columns:
+            progressw.active = False
             progressw.bar_color = "danger"
-            return None
+            return
         res = biem(
             c,
             uin=plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
             k=k,
             n_end=n_end,
             eta=eta,
-            centers=xp.asarray(radiuscenter[:, 1:]),
-            radii=xp.asarray(radiuscenter[:, 0]),
+            centers=xp.asarray(radiuscenter[list(range(d))]),
+            radii=xp.asarray(radiuscenter["radius"]),
             kind=kind,
             force_matrix=force_matrix,
         )
@@ -268,6 +273,10 @@ def serve() -> None:
         progressw.bar_color = "success"
         return plot_2d
 
+    def exception_handler(ex: Any) -> None:
+        if pn.state.notifications is not None:
+            pn.state.notifications.error(f"{ex}")
+
     layout = pn.Row(
         pn.Column(
             progressw,
@@ -279,9 +288,10 @@ def serve() -> None:
         update_backend,
         update_custom,
         update_d_from_custom,
+        update_n_end,
         update_axis,
         update_plot_which,
         update_sol,
         update_plot,
     )
-    pn.serve(layout)
+    pn.serve(layout, exception_handler=exception_handler)

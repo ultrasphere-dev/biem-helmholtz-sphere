@@ -44,6 +44,7 @@ cli = [
     "pandas>=2.3.3",
     "panel>=1.8.1",
     "plotly>=6.3.1",
+    "psutil>=7.1.2",
     "torch>=2.8.0",
 ]
 

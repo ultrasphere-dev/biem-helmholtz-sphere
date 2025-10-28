@@ -108,18 +108,18 @@ def plot_biem(
     plot_2d = px.imshow(
         xp.moveaxis(uplot_re, -1, -2),
         animation_frame=0,
-        y=xp.squeeze(x),
-        x=xp.squeeze(y),
+        y=x[:, 0],
+        x=y[0, :],
         title=title,
         labels={
-            "x": f"$x_{xaxis}$",
-            "y": f"$x_{yaxis}$",
+            "x": f"x<sub>{xaxis}</sub>",
+            "y": f"x<sub>{yaxis}</sub>",
         },
         color_continuous_scale="RdBu_r",
         color_continuous_midpoint=0,
         **plot_kwargs,
     )
-    plot_2d.update_layout(plot_bgcolor="black")
+    plot_2d.update_layout(plot_bgcolor="black", xaxis_visible=False, yaxis_visible=False)
     plot_2d.update_xaxes(showgrid=False)
     plot_2d.update_yaxes(showgrid=False)
     return plot_2d

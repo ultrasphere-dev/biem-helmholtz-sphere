@@ -5,7 +5,8 @@ import numpy as np
 from bempp_cl.api import GridFunction, complex_callable, function_space
 from bempp_cl.api.grid import union
 from bempp_cl.api.linalg import gmres
-from bempp_cl.api.operators.boundary.helmholtz import single_layer
+from bempp_cl.api.operators.boundary.helmholtz import adjoint_double_layer, single_layer
+from bempp_cl.api.operators.boundary.sparse import identity
 from bempp_cl.api.operators.potential.helmholtz import single_layer as single_layer_potential
 from bempp_cl.api.shapes import sphere
 from numpy.typing import NDArray
@@ -23,6 +24,8 @@ def bempp_cl_sphere(
     h: float,
     centers: Sequence[Sequence[float]],
     radii: Sequence[float],
+    alpha: complex = 1.0,
+    beta: complex = 0.0,
 ) -> Callable[[NDArray[Any], NDArray[Any], NDArray[Any]], NDArray[Any]]:
     """
     Calculate the scattered field by multiple spheres using bempp-cl.
@@ -39,6 +42,10 @@ def bempp_cl_sphere(
         The centers of the spheres of shape (B, 3).
     radii : Sequence[float]
         The radii of the spheres of shape (B,).
+    alpha : complex, optional
+        The coefficient for the dirichlet part, by default 1.0
+    beta : complex, optional
+        The coefficient for the neumann part, by default 0.0
 
     Returns
     -------
@@ -66,7 +73,9 @@ def bempp_cl_sphere(
         ]
     )
     space = function_space(grid, "DP", 0)
-    lhs = single_layer(space, space, space, k)
+    lhs = alpha * single_layer(space, space, space, k) + beta * (
+        -1 / 2 * identity(space, space, space) + adjoint_double_layer(space, space, space, k)
+    )
 
     @complex_callable
     def f(x: Any, n: Any, domain_index: Any, result: Any) -> None:
