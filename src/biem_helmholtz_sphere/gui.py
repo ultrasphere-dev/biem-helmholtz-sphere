@@ -248,6 +248,8 @@ def serve() -> None:
             eta=eta,
             centers=xp.asarray(radiuscenter[list(range(d))]),
             radii=xp.asarray(radiuscenter["radius"]),
+            alpha=xp.asarray(radiuscenter["alpha"]),
+            beta=xp.asarray(radiuscenter["beta"]),
             kind=kind,
             force_matrix=force_matrix,
         )
