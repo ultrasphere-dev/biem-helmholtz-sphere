@@ -46,20 +46,10 @@ def serve() -> None:
     k_imw = pn.widgets.FloatInput(name="Wavenumber k (Im)", value=0)
     etaw = pn.widgets.FloatInput(name="Decoupling parameter eta", value=1)
     force_matrixw = pn.widgets.Checkbox(name="Force matrix", value=False)
-    g_calculation = pn.WidgetBox(
-        "## Calculation",
-        kindw,
-        k_rew,
-        k_imw,
-        etaw,
-        force_matrixw,
-    )
-
-    # plot
-    plot_whichw = pn.widgets.ToggleGroup(
-        name="Plot", options=["uin", "uscat0"], value=["uin", "uscat0"]
-    )
-    radiuscenterw = pn.widgets.DataFrame(
+    n_endw = pn.widgets.IntSlider(name="Maximum degree", value=5, start=1, end=40)
+    radiuscenter_addw = pn.widgets.Button(name="Add sphere", button_type="primary")
+    radiuscenter_removew = pn.widgets.Button(name="Remove sphere", button_type="danger")
+    radiuscenterw = pn.widgets.Tabulator(
         pd.DataFrame(
             {
                 "alpha": [1.0, 1.0],
@@ -71,19 +61,32 @@ def serve() -> None:
         ),
         show_index=False,
     )
+    g_calculation = pn.WidgetBox(
+        "## Calculation",
+        kindw,
+        k_rew,
+        k_imw,
+        etaw,
+        force_matrixw,
+        n_endw,
+        pn.Row(radiuscenter_addw, radiuscenter_removew),
+        radiuscenterw,
+    )
+
+    # plot
+    plot_whichw = pn.widgets.ToggleGroup(
+        name="Plot", options=["uin", "uscat0"], value=["uin", "uscat0"]
+    )
     r_plotw = pn.widgets.FloatInput(name="Plot radius", value=4)
     n_plotw = pn.widgets.IntSlider(name="Points to plot", value=60, start=1, end=200)
-    n_endw = pn.widgets.IntSlider(name="Maximum degree", value=5, start=1, end=40)
     n_tw = pn.widgets.IntSlider(name="Time count", value=4, start=1, end=50)
     axisxw = pn.widgets.IntSlider(name="Axis x", value=0, start=0, end=1)
     axisyw = pn.widgets.IntSlider(name="Axis y", value=1, start=0, end=1)
     g_plot = pn.WidgetBox(
         "## Plot",
         plot_whichw,
-        radiuscenterw,
         r_plotw,
         n_plotw,
-        n_endw,
         n_tw,
         axisxw,
         axisyw,
@@ -176,6 +179,31 @@ def serve() -> None:
         plot_whichw.options = new_options
         if len(old_options) < len(new_options):
             plot_whichw.value = plot_whichw.value + new_options[len(old_options) :]
+
+    def add_sphere(_: Any) -> None:
+        radiuscenterw.value = pd.concat(
+            (
+                radiuscenterw.value,
+                pd.Series(
+                    {  # type: ignore
+                        "radius": 1.0,
+                        "alpha": 1.0,
+                        "beta": 0.0,
+                        **dict.fromkeys(range(dw.value), 0.0),
+                    },
+                    name=len(radiuscenterw.value),
+                )
+                .to_frame()
+                .T,
+            )
+        )
+
+    def remove_sphere(_: Any) -> None:
+        if len(radiuscenterw.value) > 0:
+            radiuscenterw.value = radiuscenterw.value.iloc[:-1]
+
+    radiuscenter_addw.on_click(add_sphere)
+    radiuscenter_removew.on_click(remove_sphere)
 
     @pn.depends(
         ccustomw.param.value,
