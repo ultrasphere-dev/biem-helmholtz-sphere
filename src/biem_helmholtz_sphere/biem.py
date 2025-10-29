@@ -325,7 +325,9 @@ def _check_biem_inputs[TSpherical, TCartesian](
     return centers, radii, k, eta, alpha, beta
 
 
-def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
+def plane_wave(
+    *, k: Array, direction: Array
+) -> tuple[Callable[[Array], Array], Callable[[Array], Array]]:
     r"""
     Plane wave.
 
@@ -350,6 +352,9 @@ def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
     Callable[[Array], Array]
         Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
         returns the incident field of shape (...(any), ...)
+    Callable[[Array], Array]
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        returns the gradient of the incident field of shape (c.c_ndim, ...(any), ...)
 
     """
     xp = array_namespace(k, direction)
@@ -370,10 +375,21 @@ def plane_wave(*, k: Array, direction: Array) -> Callable[[Array], Array]:
         ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
         return xp.exp(1j * k * ip)
 
-    return inner
+    def inner_grad(x: Array, /) -> Array:
+        ip = xp.sum(direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)] * x, axis=0)
+        return (
+            1j
+            * k
+            * direction[(slice(None),) + (None,) * (x.ndim - direction.ndim)]
+            * xp.exp(1j * k * ip)[None, ...]
+        )
+
+    return inner, inner_grad
 
 
-def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]:
+def point_source(
+    *, k: Array, source: Array, n: int
+) -> tuple[Callable[[Array], Array], Callable[[Array], Array]]:
     r"""
     Point source.
 
@@ -395,6 +411,9 @@ def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]
     Callable[[Array], Array]
         Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
         returns the incident field of shape (...(any), ...)
+    Callable[[Array], Array]
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        returns the gradient of the incident field of shape (c.c_ndim, ...(any), ...)
 
     """
     xp = array_namespace(k, source)
@@ -416,7 +435,14 @@ def point_source(*, k: Array, source: Array, n: int) -> Callable[[Array], Array]
         d = int(x.shape[0])
         return shn1(n_, xp.asarray(d), k * xp.linalg.vector_norm(x, axis=0))
 
-    return inner
+    def inner_grad(x: Array, /) -> Array:
+        x = x - source[(slice(None),) + (None,) * (x.ndim - source.ndim)]
+        d = int(x.shape[0])
+        r = xp.linalg.vector_norm(x, axis=0)
+        coeff = k * shn1(n_, xp.asarray(d), k * r, derivative=True) / r
+        return coeff[None, ...] * x
+
+    return inner, inner_grad
 
 
 def biem[TSpherical, TCartesian](
@@ -430,6 +456,7 @@ def biem[TSpherical, TCartesian](
     alpha: Array | complex = 1.0,
     beta: Array | complex = 0.0,
     uin: Callable[[Array], Array] | None = None,
+    uin_grad: Callable[[Array], Array] | None = None,
     eta: Array | None = None,
     kind: Literal["inner", "outer"] = "outer",
     force_matrix: bool = False,
@@ -454,7 +481,7 @@ def biem[TSpherical, TCartesian](
     $$
     \begin{cases}
     \Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
-    \alpha u + \beta \grad u \dot n_x = -u_\text{in} \quad
+    \alpha u + \beta \grad u \dot n_x = -\alpha u_\text{in} -\beta \grad u_\text{in} \dot n_x \quad
     &x \in \mathbb{S}^{d-1} \\
     \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}}
     \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad
@@ -491,6 +518,11 @@ def biem[TSpherical, TCartesian](
         should return the incident field of shape (...(any), ...)
 
         Must satisfy the Helmholtz equation with wavenumber k.
+    uin_grad : Callable[[Array], Array], optional
+        The gradient of the incident field.
+
+        Given cartesian coordinates of shape (c.c_ndim, ...(any), ...),
+        should return the gradient of the incident field of shape (c.c_ndim, ...(any), ...)
     centers : Array
         The centers of the spheres of shape (..., B, c.c_ndim).
     radii : Array
@@ -538,22 +570,35 @@ def biem[TSpherical, TCartesian](
     d = xp.asarray(c.c_ndim)
     n_spheres = radii.shape[-1]
 
-    if uin is None:
+    if uin is None and uin_grad is None:
         f_expansion = None
     else:
+        if not xp.all(alpha == 0) and uin is None:
+            raise ValueError(
+                "alpha is not zero, but uin is None. "
+                "uin must be provided to compute the boundary condition."
+            )
+        if not xp.all(beta == 0) and uin_grad is None:
+            raise ValueError(
+                "beta is not zero, but uin_grad is None. "
+                "uin_grad must be provided to compute the boundary condition."
+            )
+
         # boundary condition
         def f(spherical: Mapping[TSpherical, Array]) -> Array:
             # (c_ndim, ...(f), ..., B)
-            x = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (ndim_first + 1)]
+            x_rel = c.to_cartesian(spherical, as_array=True)[(...,) + (None,) * (ndim_first + 1)]
             x = (
-                radii * x
+                radii * x_rel
                 + centers[
                     (slice(None),) + (None,) * c.s_ndim + (slice(None),) + (None,) * ndim_first
                 ]
             )  # x - c_i
             # (c_ndim, ...(f), B, ...)
             x = xp.moveaxis(x, -1, -ndim_first - 1)
-            return -uin(x)
+            return (0 if uin is None else -alpha * uin(x)) + (
+                0 if uin_grad is None else -beta * xp.sum(uin_grad(x) * x_rel, axis=0)
+            )
 
         # (B, ..., harm)
         f_expansion = ush.expand(
@@ -570,7 +615,9 @@ def biem[TSpherical, TCartesian](
 
     # compute SL and DL, [..., B, harm1, ..., harmN]
     # (sizes except for B and harm_root are 1)
-    use_matrix = uin is None or n_spheres is None or n_spheres > 1 or force_matrix
+    use_matrix = (
+        (uin is None and uin_grad is None) or n_spheres is None or n_spheres > 1 or force_matrix
+    )
 
     # compute a
     if not use_matrix:
