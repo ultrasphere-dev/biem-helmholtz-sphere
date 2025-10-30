@@ -101,7 +101,7 @@ def plot_biem(
         f"{c.c_ndim:g}D, "
         f"type {c.branching_types_expression_str} coordinates, "
         f"Max Degree={biem_res.n_end - 1:g}, "
-        f"k={float(biem_res.k):g}, "
+        f"k={complex(biem_res.k) if 'complex' in str(biem_res.k.dtype) else float(biem_res.k):g}, "
         f"η={float(biem_res.eta):g}"
     )
 

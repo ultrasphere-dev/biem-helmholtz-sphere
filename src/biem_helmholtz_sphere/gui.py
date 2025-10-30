@@ -358,5 +358,5 @@ def serve() -> None:
                 ),
             )
         ],
-        sidebar_width=410,
+        sidebar_width=510,
     ).show()
