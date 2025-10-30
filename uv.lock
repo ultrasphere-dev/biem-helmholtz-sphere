@@ -153,6 +153,7 @@ dependencies = [
     { name = "array-api-extra" },
     { name = "attrs" },
     { name = "batch-tensorsolve" },
+    { name = "panel-material-ui" },
     { name = "rich" },
     { name = "typer" },
     { name = "types-array-api" },
@@ -191,6 +192,7 @@ requires-dist = [
     { name = "kaleido", marker = "extra == 'cli'", specifier = ">=1.1.0" },
     { name = "pandas", marker = "extra == 'cli'", specifier = ">=2.3.3" },
     { name = "panel", marker = "extra == 'cli'", specifier = ">=1.8.1" },
+    { name = "panel-material-ui", specifier = ">=0.5.1" },
     { name = "plotly", marker = "extra == 'cli'", specifier = ">=6.3.1" },
     { name = "psutil", marker = "extra == 'cli'", specifier = ">=7.1.2" },
     { name = "rich", specifier = ">=10" },
@@ -1339,6 +1341,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/be/20/713994e1f2cc244ad621800bb3ad59e4f165fd2de9d404edff558290302d/panel-1.8.1.tar.gz", hash = "sha256:c1f419d982e8b7bd385574e136f3fbb5bb2e52219a6b5e2531f0984c6c0e7a80", size = 31990742, upload-time = "2025-09-16T16:26:05.452Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/55/150c28bf3e50c7d65f763f7cc060740eada65817c40e6e5dead50fced228/panel-1.8.1-py3-none-any.whl", hash = "sha256:c1e0f1fdfeba50702af95650c3b54bfaa68ebbff309147a2e1c25af8a67d9a2d", size = 30078706, upload-time = "2025-09-16T16:26:00.65Z" },
+]
+
+[[package]]
+name = "panel-material-ui"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bokeh" },
+    { name = "packaging" },
+    { name = "panel" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/7c/9f5fbc4eb07c548da7b76987dea817fc3d5618e990b67d55210dc00c1a00/panel_material_ui-0.5.1.tar.gz", hash = "sha256:f3f966967db951881b4dffe5cc4fda8b7a041dbda135e4d8fb3df3806bb5f2d2", size = 3764513, upload-time = "2025-10-06T13:58:43.506Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/52/ecc18959fc5bd363a833d6906be8cb6f2769912627bd134a626357f8a055/panel_material_ui-0.5.1-py3-none-any.whl", hash = "sha256:d407268033a4d8a54a58e95f76e90b8950d62073a25c8a501e824aac2c640466", size = 1568054, upload-time = "2025-10-06T13:58:41.597Z" },
 ]
 
 [[package]]

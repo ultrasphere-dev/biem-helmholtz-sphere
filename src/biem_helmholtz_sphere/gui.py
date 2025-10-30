@@ -2,6 +2,7 @@ from typing import Any, Literal
 
 import pandas as pd
 import panel as pn
+import panel_material_ui as pmui
 from array_api._2024_12 import Array, ArrayNamespaceFull
 from array_api_compat import numpy as np
 from array_api_compat import torch
@@ -19,7 +20,7 @@ from .plot import plot_biem
 
 def serve() -> None:
     """Serve panel app."""
-    template = pn.template.BootstrapTemplate(title="Acoustic Scattering by Multiple Spheres")
+    pn.extension("katex", "mathjax", "plotly")
     xp: ArrayNamespaceFull = np
     res: BIEMResultCalculator[Any, Any] | None = None
     rescountw = pn.widgets.IntInput(name="Result count", value=0)
@@ -39,6 +40,7 @@ def serve() -> None:
         dw,
         ctypew,
         ccustomw,
+        sizing_mode="stretch_width",
     )
 
     # calculation parameters
@@ -72,6 +74,22 @@ def serve() -> None:
         n_endw,
         pn.Row(radiuscenter_addw, radiuscenter_removew),
         radiuscenterw,
+        pn.pane.LaTeX(
+            r"""$
+        \begin{aligned}
+        \Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
+        \alpha u + \beta \nabla u \cdot n_x
+        = -\alpha u_\text{in} -\beta \nabla u_\text{in} \cdot n_x \quad
+        &x \in \mathbb{S}^{d-1} \\
+        \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}}
+        \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad
+        &\frac{x}{\|x\|} \in \mathbb{S}^{d-1}
+        \end{aligned}
+        $""",
+            renderer="mathjax",
+            styles={"font-size": "10pt"},
+        ),
+        sizing_mode="stretch_width",
     )
 
     # plot
@@ -91,6 +109,7 @@ def serve() -> None:
         n_tw,
         axisxw,
         axisyw,
+        sizing_mode="stretch_width",
     )
 
     downloadsvgw = pn.widgets.FileDownload(file="plot.svg")
@@ -98,7 +117,12 @@ def serve() -> None:
     downloadjpgw = pn.widgets.FileDownload(file="plot.jpg")
     downloaddataw = pn.widgets.FileDownload(file="data.csv")
     g_download = pn.WidgetBox(
-        "## Download", pn.Row(downloadsvgw, downloadpngw, downloadjpgw, downloaddataw)
+        "## Download",
+        downloadsvgw,
+        downloadpngw,
+        downloadjpgw,
+        downloaddataw,
+        sizing_mode="stretch_width",
     )
 
     progressw = pn.widgets.Progress(name="Progress", value=0, max=100)
@@ -306,29 +330,32 @@ def serve() -> None:
         progressw.value = 100
         progressw.active = False
         progressw.bar_color = "success"
-        return plot_2d
+        return pn.pane.Plotly(plot_2d, sizing_mode="stretch_both")
 
     def exception_handler(ex: Any) -> None:
         if pn.state.notifications is not None:
             pn.state.notifications.error(f"{ex}")
 
-    template.sidebar.append(
-        pn.Row(
-            pn.Column(
-                progressw,
-                g_coordinates,
-                g_calculation,
-                g_plot,
-                g_download,
-                update_backend,
-                update_custom,
-                update_d_from_custom,
-                update_n_end,
-                update_axis,
-                update_plot_which,
-                update_sol,
-            ),
-        )
-    )
-    template.main.append(update_plot)
-    template.show()
+    pmui.Page(
+        title="Acoustic Scattering by Multiple Spheres",
+        main=[update_plot],
+        sidebar=[
+            pn.Row(
+                pn.Column(
+                    progressw,
+                    g_coordinates,
+                    g_calculation,
+                    g_plot,
+                    g_download,
+                    update_backend,
+                    update_custom,
+                    update_d_from_custom,
+                    update_n_end,
+                    update_axis,
+                    update_plot_which,
+                    update_sol,
+                ),
+            )
+        ],
+        sidebar_width=410,
+    ).show()
