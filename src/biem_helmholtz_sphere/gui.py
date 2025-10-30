@@ -19,6 +19,7 @@ from .plot import plot_biem
 
 def serve() -> None:
     """Serve panel app."""
+    template = pn.template.BootstrapTemplate(title="Acoustic Scattering by Multiple Spheres")
     xp: ArrayNamespaceFull = np
     res: BIEMResultCalculator[Any, Any] | None = None
     rescountw = pn.widgets.IntInput(name="Result count", value=0)
@@ -311,21 +312,23 @@ def serve() -> None:
         if pn.state.notifications is not None:
             pn.state.notifications.error(f"{ex}")
 
-    layout = pn.Row(
-        pn.Column(
-            progressw,
-            g_coordinates,
-            g_calculation,
-            g_plot,
-            g_download,
-        ),
-        update_backend,
-        update_custom,
-        update_d_from_custom,
-        update_n_end,
-        update_axis,
-        update_plot_which,
-        update_sol,
-        update_plot,
+    template.sidebar.append(
+        pn.Row(
+            pn.Column(
+                progressw,
+                g_coordinates,
+                g_calculation,
+                g_plot,
+                g_download,
+                update_backend,
+                update_custom,
+                update_d_from_custom,
+                update_n_end,
+                update_axis,
+                update_plot_which,
+                update_sol,
+            ),
+        )
     )
-    pn.serve(layout, exception_handler=exception_handler)
+    template.main.append(update_plot)
+    template.show()
