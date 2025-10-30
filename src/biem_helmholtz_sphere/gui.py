@@ -66,6 +66,7 @@ def serve() -> None:
     )
     g_calculation = pn.WidgetBox(
         "## Calculation",
+        backendw,
         kindw,
         k_rew,
         k_imw,
@@ -98,7 +99,7 @@ def serve() -> None:
     )
     r_plotw = pn.widgets.FloatInput(name="Plot radius", value=4)
     n_plotw = pn.widgets.IntSlider(name="Points to plot", value=60, start=1, end=200)
-    n_tw = pn.widgets.IntSlider(name="Time count", value=4, start=1, end=50)
+    n_tw = pn.widgets.IntSlider(name="Time count", value=1, start=1, end=50)
     axisxw = pn.widgets.IntSlider(name="Axis x", value=0, start=0, end=1)
     axisyw = pn.widgets.IntSlider(name="Axis y", value=1, start=0, end=1)
     g_plot = pn.WidgetBox(
@@ -239,6 +240,7 @@ def serve() -> None:
         radiuscenterw.param.value,
         n_endw.param.value,
         kindw.param.value,
+        backendw.param.value,
     )
     def update_sol(
         cstr: str,
@@ -249,6 +251,7 @@ def serve() -> None:
         radiuscenter: Array,
         n_end: int,
         kind: Literal["inner", "outer"],
+        _: str,
     ) -> None:
         nonlocal res
         if k_im != 0:
@@ -273,7 +276,7 @@ def serve() -> None:
             k=k,
             n_end=n_end,
             eta=eta,
-            centers=xp.asarray(radiuscenter[list(range(d))]),
+            centers=xp.asarray(radiuscenter[list(range(d))].values),
             radii=xp.asarray(radiuscenter["radius"]),
             alpha=xp.asarray(radiuscenter["alpha"]),
             beta=xp.asarray(radiuscenter["beta"]),
@@ -306,7 +309,6 @@ def serve() -> None:
         progressw.value = 50
         progressw.active = True
         progressw.bar_color = "secondary"
-
         # plot
         plot_2d = plot_biem(
             res,
