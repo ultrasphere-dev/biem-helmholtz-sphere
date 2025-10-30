@@ -79,7 +79,7 @@ def bempp_cl_sphere(
 
     @complex_callable
     def f(x: Any, n: Any, domain_index: Any, result: Any) -> None:
-        result[0] = -np.exp(1j * k * x[0])
+        result[0] = -alpha * np.exp(1j * k * x[0]) - beta * 1j * k * np.exp(1j * k * x[0]) * n[0]
 
     rhs = GridFunction(space, fun=f)
     neumann_fun, _ = gmres(lhs, rhs, tol=1e-5)
