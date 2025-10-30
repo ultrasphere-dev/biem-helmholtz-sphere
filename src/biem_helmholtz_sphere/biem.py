@@ -481,7 +481,8 @@ def biem[TSpherical, TCartesian](
     $$
     \begin{cases}
     \Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
-    \alpha u + \beta \grad u \dot n_x = -\alpha u_\text{in} -\beta \grad u_\text{in} \dot n_x \quad
+    \alpha u + \beta \nabla u \cdot n_x
+    = -\alpha u_\text{in} -\beta \nabla u_\text{in} \cdot n_x \quad
     &x \in \mathbb{S}^{d-1} \\
     \lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}}
     \left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad

@@ -337,6 +337,7 @@ def serve() -> None:
             pn.state.notifications.error(f"{ex}")
 
     pmui.Page(
+        dark_theme=True,
         title="Acoustic Scattering by Multiple Spheres",
         main=[update_plot],
         sidebar=[
