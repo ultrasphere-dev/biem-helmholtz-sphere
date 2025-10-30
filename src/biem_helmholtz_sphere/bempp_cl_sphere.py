@@ -68,7 +68,7 @@ def bempp_cl_sphere(
 
     grid = union(
         [
-            sphere(h=h, origin=center, r=radius)
+            sphere(h=h * radius, origin=center, r=radius)
             for center, radius in zip(centers, radii, strict=False)
         ]
     )

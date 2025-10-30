@@ -240,9 +240,11 @@ def serve() -> None:
             progressw.bar_color = "danger"
             progressw.value = 100
             return
+        uin, uin_grad = plane_wave(k=xp.asarray(k), direction=xp.asarray((1.0,) + (0.0,) * (d - 1)))
         res = biem(
             c,
-            uin=plane_wave(k=xp.asarray(k), direction=xp.asarray((1,) + (0,) * (d - 1))),
+            uin=uin,
+            uin_grad=uin_grad,
             k=k,
             n_end=n_end,
             eta=eta,
