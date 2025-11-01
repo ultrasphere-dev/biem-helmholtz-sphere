@@ -112,8 +112,8 @@ def plot_biem(
     plot_2d = px.imshow(
         to_device(xp.moveaxis(uplot_re, -1, -2), "cpu"),
         animation_frame=0,
-        y=x[:, 0],
-        x=y[0, :],
+        y=to_device(x[:, 0], "cpu"),
+        x=to_device(y[0, :], "cpu"),
         title=title,
         labels={
             "x": f"x<sub>{xaxis}</sub>",

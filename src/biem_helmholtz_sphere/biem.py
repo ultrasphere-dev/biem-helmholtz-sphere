@@ -8,12 +8,14 @@ import ultrasphere_harmonics as ush
 from array_api._2024_12 import Array
 from array_api_compat import array_namespace
 from batch_tensorsolve import btensorsolve
+from numpy.exceptions import ComplexWarning
 from ultrasphere import (
     SphericalCoordinates,
     potential_coef,
     shn1,
 )
 
+warnings.filterwarnings("error", category=ComplexWarning)
 TCartesian = TypeVar("TCartesian")
 TSpherical = TypeVar("TSpherical")
 
@@ -939,7 +941,7 @@ def biem_u(
         # (...(x), ...(first))
         uscat = xp.sum(uscat, axis=-1)
     # for 0d case
-    uscat = xp.asarray(uscat, dtype=dtype, device=device)
+    uscat = xp.asarray(uscat, dtype=dtype_complex, device=device)
 
     # fill invalid regions with nan
     if kind == "outer":
