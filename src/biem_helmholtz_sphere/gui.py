@@ -1,11 +1,12 @@
+from logging import getLogger
 from typing import Any, Literal
 
 import pandas as pd
 import panel as pn
 import panel_material_ui as pmui
 from array_api._2024_12 import Array, ArrayNamespaceFull
+from array_api_compat import numpy, torch
 from array_api_compat import numpy as np
-from array_api_compat import torch
 from ultrasphere import (
     create_from_branching_types,
     create_hopf,
@@ -17,11 +18,12 @@ from ultrasphere import (
 from .biem import BIEMResultCalculator, biem, max_n_end, plane_wave
 from .plot import plot_biem
 
+LOG = getLogger(__name__)
+
 
 def serve() -> None:
     """Serve panel app."""
     pn.extension("katex", "mathjax", "plotly")
-    xp: ArrayNamespaceFull = np
     res: BIEMResultCalculator[Any, Any] | None = None
     rescountw = pn.widgets.IntInput(name="Result count", value=0)
     # coordinates
@@ -42,7 +44,13 @@ def serve() -> None:
 
     # calculation parameters
     backendw = pn.widgets.ToggleGroup(
-        name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
+        name="Backend",
+        options={
+            "numpy": numpy,
+            "torch": torch,
+        },
+        behavior="radio",
+        value=numpy,
     )
     devicew = pn.widgets.ToggleGroup(name="Device", behavior="radio")
     dtypew = pn.widgets.ToggleGroup(name="Dtype", behavior="radio")
@@ -133,22 +141,17 @@ def serve() -> None:
     progressw = pn.widgets.Progress(name="Progress", value=0, max=100)
 
     @pn.depends(backendw.param.value, on_init=True)
-    def update_backend(backend: str) -> None:
-        nonlocal xp
-        if backend == "numpy":
-            xp = np
-        elif backend == "torch":
-            xp = torch
-        else:
-            raise ValueError(f"Unknown backend: {backend}")
+    def update_device(xp: ArrayNamespaceFull) -> None:
         devicew.options = xp.__array_namespace_info__().devices()
-        devicew.value = next(iter(devicew.options), None)
+        if devicew.value not in devicew.options:
+            devicew.value = next(iter(devicew.options), None)
 
     @pn.depends(devicew.param.value, on_init=True)
     def update_dtype(device: Any) -> None:
-        dtypes = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
-        dtypew.options = dtypes
-        dtypew.value = next(iter(dtypes.values()), None)
+        xp = backendw.value
+        dtypew.options = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
+        if dtypew.value not in dtypew.options.values():
+            dtypew.value = next(iter(dtypew.options.values()), None)
 
     @pn.depends(dw.param.value, ctypew.param.value)
     def update_custom(d: int, ctype: str) -> None:
@@ -162,8 +165,8 @@ def serve() -> None:
             elif ctype == "standard_prime":
                 ccustomw.value = create_standard_prime(d - 1).branching_types_expression_str
             elif ctype == "hopf":
-                if xp.pow(int(xp.log2(d)), 2) == d:
-                    ccustomw.value = create_hopf(int(xp.log2(d))).branching_types_expression_str
+                if np.pow(int(np.log2(d)), 2) == d:
+                    ccustomw.value = create_hopf(int(np.log2(d))).branching_types_expression_str
                 else:
                     raise ValueError(f"d must be a power of 2, but {d}")
             elif ctype == "random":
@@ -265,11 +268,23 @@ def serve() -> None:
         radiuscenter: Array,
         n_end: int,
         kind: Literal["inner", "outer"],
-        _: str,
+        xp: ArrayNamespaceFull,
         device: Any,
         dtype: Any,
     ) -> None:
         if dtype is None:
+            LOG.warn("dtype is None, skip calculation")
+            return
+        if device not in xp.__array_namespace_info__().devices():
+            LOG.warn(f"{device=} is not available, skip calculation")
+            return
+        if (
+            dtype
+            not in xp.__array_namespace_info__()
+            .dtypes(device=device, kind="real floating")
+            .values()
+        ):
+            LOG.warning(f"{dtype=} is not available, skip calculation")
             return
         dtype_complex = xp.result_type(xp.complex64, dtype)
         nonlocal res
@@ -328,6 +343,7 @@ def serve() -> None:
         _: int,
     ) -> pn.pane.Pane | None:
         nonlocal res
+        xp = backendw.value
         if res is None:
             return None
         progressw.value = 50
@@ -375,14 +391,14 @@ def serve() -> None:
                     g_calculation,
                     g_plot,
                     g_download,
-                    update_backend,
-                    update_dtype,
                     update_custom,
                     update_d_from_custom,
                     update_n_end,
                     update_axis,
                     update_plot_which,
                     update_sol,
+                    update_device,
+                    update_dtype,
                 ),
             )
         ],
