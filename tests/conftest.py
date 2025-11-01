@@ -1,39 +1,51 @@
+from typing import Any
+
 import pytest
 from array_api._2024_12 import ArrayNamespaceFull
 
 
 @pytest.fixture(scope="session", params=["numpy", "torch"])
 def xp(request: pytest.FixtureRequest) -> ArrayNamespaceFull:
-    """Get the array namespace for the given backend."""
     backend = request.param
     if backend == "numpy":
         from array_api_compat import numpy as xp
 
         rng = xp.random.default_rng()
 
-        def random_uniform(low=0, high=1, shape=None, dtype=None):
-            return rng.random(shape, dtype) * (high - low) + low
+        def random_uniform(low=0, high=1, shape=None, device=None, dtype=None):
+            return rng.random(shape, dtype=dtype) * (high - low) + low
 
-        def integers(low, high=None, shape=None):
-            return rng.integers(low, high, size=shape)
+        def integers(low, high=None, shape=None, device=None, dtype=None):
+            return rng.integers(low, high, size=shape, dtype=dtype)
 
         xp.random.random_uniform = random_uniform
         xp.random.integers = integers
     elif backend == "torch":
         from array_api_compat import torch as xp
 
-        def random_uniform(low=0, high=1, shape=None, dtype=None):
-            return xp.rand(shape, dtype=dtype) * (high - low) + low
+        def random_uniform(low=0, high=1, shape=None, device=None, dtype=None):
+            return xp.rand(shape, device=device, dtype=dtype) * (high - low) + low
 
-        def integers(low, high=None, shape=None):
-            return xp.randint(low, high, size=shape)
+        def integers(low, high=None, shape=None, device=None, dtype=None):
+            return xp.randint(low, high, size=shape, device=device, dtype=dtype)
 
         xp.random.random_uniform = random_uniform
         xp.random.integers = integers
-        import torch
-
-        if torch.cuda.is_available():
-            xp.set_default_device("cuda")
     else:
         raise ValueError(f"Unknown backend: {backend}")
     return xp
+
+
+@pytest.fixture(scope="session", params=["cpu", "cuda"])
+def device(request: pytest.FixtureRequest, xp: ArrayNamespaceFull) -> Any:
+    device = request.param
+    try:
+        _ = xp.asarray(1, device=device)
+    except Exception:
+        pytest.skip(f"{device=} is not available")
+    return device
+
+
+@pytest.fixture(scope="session", params=["float32", "float64"])
+def dtype(request: pytest.FixtureRequest, xp: ArrayNamespaceFull) -> str:
+    return getattr(xp, request.param)

@@ -52,8 +52,10 @@ cli = [
 [dependency-groups]
 dev = [
   "bempp-cl>=0.4.2",
+  "joblib>=1.5.2",
   "pytest>=8,<9",
   "pytest-cov>=7,<8",
+  "sybil>=9.2.0",
 ]
 docs = [
   "furo>=2023.5.20; python_version>='3.11'",
