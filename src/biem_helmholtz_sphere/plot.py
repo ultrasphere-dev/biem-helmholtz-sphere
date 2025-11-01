@@ -97,7 +97,7 @@ def plot_biem(
         if plot_uin:
             title += " + "
         title += "Scattered Field by Ball " + ", ".join(
-            [str(x) for x in xp.nonzero(plot_uscateach_)[0]]
+            [str(int(x)) for x in xp.nonzero(plot_uscateach_)[0]]
         )
     title += r"<br>"
     k, eta = biem_res.k, biem_res.eta
