@@ -51,7 +51,7 @@ def serve() -> None:
     k_imw = pn.widgets.FloatInput(name="Wavenumber k (Im)", value=0)
     etaw = pn.widgets.FloatInput(name="Decoupling parameter eta", value=1)
     force_matrixw = pn.widgets.Checkbox(name="Force matrix", value=False)
-    n_endw = pn.widgets.IntSlider(name="Maximum degree", value=5, start=1, end=40)
+    n_endw = pn.widgets.IntSlider(name="Maximum degree + 1", value=5, start=1, end=40)
     radiuscenter_addw = pn.widgets.Button(name="Add sphere", button_type="primary")
     radiuscenter_removew = pn.widgets.Button(name="Remove sphere", button_type="danger")
     radiuscenterw = pn.widgets.Tabulator(
@@ -186,7 +186,7 @@ def serve() -> None:
             max_n_end(
                 c_ndim=d, memory_limit=virtual_memory().available // 16, n_balls=len(radiuscenter)
             ),
-            20,
+            30,
         )
         n_endw.value = min(n_endw.value, n_endw.end)
 

@@ -107,6 +107,7 @@ def plot_biem(
         f"Max Degree={biem_res.n_end - 1:g}, "
         f"k={complex(k) if 'complex' in str(k.dtype) else float(k):g}, "
         f"η={complex(eta) if 'complex' in str(eta.dtype) else float(eta):g}"
+        f"<br>dtype={dtype}, device={device}"
     )
 
     plot_2d = px.imshow(
