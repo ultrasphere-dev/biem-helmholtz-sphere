@@ -688,11 +688,13 @@ def biem[TSpherical, TCartesian](
             method=translational_coefficients_method,
         )
         # (B,) -> (..., B, B', harm, harm')
-        ball_current = xp.arange(n_spheres)[
+        ball_current = xp.arange(n_spheres, device=device)[
             (None,) * (ndim_first) + (slice(None), None, None, None)
         ]
         # (B') -> (..., B, B', harm, harm')
-        ball_to_add = xp.arange(n_spheres)[(None,) * (ndim_first) + (None, slice(None), None, None)]
+        ball_to_add = xp.arange(n_spheres, device=device)[
+            (None,) * (ndim_first) + (None, slice(None), None, None)
+        ]
         # (..., B) -> (..., B, B')
         radius_current = radii[..., :, None]
         # (..., B') -> (..., B, B')

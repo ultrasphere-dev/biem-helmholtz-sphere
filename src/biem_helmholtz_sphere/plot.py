@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import plotly.express as px
-from array_api_compat import array_namespace
+from array_api_compat import array_namespace, to_device
 from plotly.graph_objects import Figure
 
 from .biem import BIEMResultCalculator
@@ -60,16 +60,19 @@ def plot_biem(
     """
     xspace_ = xspace or (-1, 1, 100)
     yspace_ = yspace or (-1, 1, 100)
-    xp = array_namespace(biem_res.k)
+    xp = array_namespace(biem_res.centers)
+    dtype, device = biem_res.centers.dtype, biem_res.centers.device
     plot_uscateach_ = xp.asarray(plot_uscateach)
     if plot_uscateach_.ndim == 0:
         plot_uscateach_ = plot_uscateach_[None]
 
     c = biem_res.c
-    x = xp.linspace(*xspace_)[:, None]
-    y = xp.linspace(*yspace_)[None, :]
+    x = xp.linspace(*xspace_, dtype=dtype, device=device)[:, None]
+    y = xp.linspace(*yspace_, dtype=dtype, device=device)[None, :]
     spherical = c.from_cartesian(
-        defaultdict(lambda: xp.asarray(0)[None, None], {xaxis: x, yaxis: y})
+        defaultdict(
+            lambda: xp.asarray(0, dtype=dtype, device=device)[None, None], {xaxis: x, yaxis: y}
+        )
     )
     cartesian = c.to_cartesian(spherical, as_array=True)
     if biem_res.uin is None:
@@ -79,7 +82,7 @@ def plot_biem(
     uscateach = biem_res.uscat(cartesian, per_ball=True)
 
     # time
-    t = xp.arange(n_t)[:, None, None] / n_t
+    t = xp.arange(n_t, dtype=dtype, device=device)[:, None, None] / n_t
     texp = xp.exp(-1j * t * xp.asarray(2 * xp.pi))
     uplot = plot_uin * uin + xp.sum(plot_uscateach_[None, None, :] * uscateach, axis=-1)
     uplot_re = xp.real(uplot * texp)
@@ -107,7 +110,7 @@ def plot_biem(
     )
 
     plot_2d = px.imshow(
-        xp.moveaxis(uplot_re, -1, -2),
+        to_device(xp.moveaxis(uplot_re, -1, -2), "cpu"),
         animation_frame=0,
         y=x[:, 0],
         x=y[0, :],

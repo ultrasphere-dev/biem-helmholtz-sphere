@@ -44,7 +44,8 @@ def serve() -> None:
     backendw = pn.widgets.ToggleGroup(
         name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
     )
-    devicew = pn.widgets.ToggleGroup(name="Device", options=["cpu"], value="cpu")
+    devicew = pn.widgets.ToggleGroup(name="Device", behavior="radio")
+    dtypew = pn.widgets.ToggleGroup(name="Dtype", behavior="radio")
     kindw = pn.widgets.Select(name="Outer/Inner", options=["outer", "inner"])
     k_rew = pn.widgets.FloatInput(name="Wavenumber k (Re)", value=1)
     k_imw = pn.widgets.FloatInput(name="Wavenumber k (Im)", value=0)
@@ -68,6 +69,7 @@ def serve() -> None:
     g_calculation = pn.WidgetBox(
         "## Calculation",
         backendw,
+        dtypew,
         devicew,
         kindw,
         k_rew,
@@ -130,17 +132,23 @@ def serve() -> None:
 
     progressw = pn.widgets.Progress(name="Progress", value=0, max=100)
 
-    @pn.depends(backendw.param.value)
+    @pn.depends(backendw.param.value, on_init=True)
     def update_backend(backend: str) -> None:
         nonlocal xp
         if backend == "numpy":
             xp = np
-            devicew.options = ["cpu"]
         elif backend == "torch":
             xp = torch
-            devicew.options = ["cpu"] + [f"cuda:{i}" for i in range(torch.cuda.device_count())]
         else:
             raise ValueError(f"Unknown backend: {backend}")
+        devicew.options = xp.__array_namespace_info__().devices()
+        devicew.value = next(iter(devicew.options), None)
+
+    @pn.depends(devicew.param.value, on_init=True)
+    def update_dtype(device: Any) -> None:
+        dtypes = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
+        dtypew.options = dtypes
+        dtypew.value = next(iter(dtypes.values()), None)
 
     @pn.depends(dw.param.value, ctypew.param.value)
     def update_custom(d: int, ctype: str) -> None:
@@ -246,6 +254,7 @@ def serve() -> None:
         kindw.param.value,
         backendw.param.value,
         devicew.param.value,
+        dtypew.param.value,
     )
     def update_sol(
         cstr: str,
@@ -257,13 +266,19 @@ def serve() -> None:
         n_end: int,
         kind: Literal["inner", "outer"],
         _: str,
-        device: str,
+        device: Any,
+        dtype: Any,
     ) -> None:
+        if dtype is None:
+            return
+        dtype_complex = xp.result_type(xp.complex64, dtype)
         nonlocal res
         if k_im != 0:
             k = complex(k_re, k_im)
+            dtype_k = dtype_complex
         else:
             k = k_re
+            dtype_k = dtype
         progressw.value = 0
         progressw.active = True
         progressw.bar_color = "primary"
@@ -275,20 +290,20 @@ def serve() -> None:
             progressw.value = 100
             return
         uin, uin_grad = plane_wave(
-            k=xp.asarray(k, device=device),
-            direction=xp.asarray((1.0,) + (0.0,) * (d - 1), device=device),
+            k=xp.asarray(k, device=device, dtype=dtype_k),
+            direction=xp.asarray((1.0,) + (0.0,) * (d - 1), device=device, dtype=dtype),
         )
         res = biem(
             c,
             uin=uin,
             uin_grad=uin_grad,
-            k=xp.asarray(k, device=device),
+            k=xp.asarray(k, device=device, dtype=dtype_k),
             n_end=n_end,
-            eta=xp.asarray(eta, device=device),
-            centers=xp.asarray(radiuscenter[list(range(d))].values, device=device),
-            radii=xp.asarray(radiuscenter["radius"], device=device),
-            alpha=xp.asarray(radiuscenter["alpha"], device=device),
-            beta=xp.asarray(radiuscenter["beta"], device=device),
+            eta=xp.asarray(eta, device=device, dtype=dtype),
+            centers=xp.asarray(radiuscenter[list(range(d))].values, device=device, dtype=dtype),
+            radii=xp.asarray(radiuscenter["radius"], device=device, dtype=dtype),
+            alpha=xp.asarray(radiuscenter["alpha"], device=device, dtype=dtype_complex),
+            beta=xp.asarray(radiuscenter["beta"], device=device, dtype=dtype_complex),
             kind=kind,
             force_matrix=force_matrix,
         )
@@ -361,6 +376,7 @@ def serve() -> None:
                     g_plot,
                     g_download,
                     update_backend,
+                    update_dtype,
                     update_custom,
                     update_d_from_custom,
                     update_n_end,

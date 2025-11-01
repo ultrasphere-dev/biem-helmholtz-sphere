@@ -2,7 +2,7 @@
   description = "A flake providing a dev shell for Numba with CUDA without installing Numba via nix. Also supports PyTorch yet being minimal for Numba with CUDA.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
   };
 
   outputs =
@@ -30,19 +30,24 @@
           # Required for both PyTorch and Numba to find CUDA
           export CUDA_PATH=${cudatookit-with-cudart-to-lib64}
 
-          # Required for numba-cuda Python package
-          export NUMBA_CUDA_INCLUDE_PATH=${cudatookit-with-cudart-to-lib64}/include
-
-          # cuda.bindings.nvjitlink.nvJitLinkError: ERROR_INTERNAL (6)
-          # Linker error log: ERROR 4 in nvvmAddNVVMContainerToProgram, may need newer version of nvJitLink library
-          export NUMBA_CUDA_USE_NVIDIA_BINDING=0
-
           # Required for both PyTorch and Numba, adds necessary paths for dynamic linking
           export LD_LIBRARY_PATH=${
             pkgs.lib.makeLibraryPath [
               "/run/opengl-driver" # Needed to find libGL.so, required by both PyTorch and Numba
             ]
           }:$LD_LIBRARY_PATH
+
+          export LIBRARY_PATH=${
+            pkgs.lib.makeLibraryPath [
+              pkgs.graphviz
+            ]
+          }:$LIBRARY_PATH
+
+          export C_INCLUDE_PATH=${
+            pkgs.lib.makeIncludePath [
+              pkgs.graphviz
+            ]
+          }:$C_INCLUDE_PATH
         '';
       };
     };
