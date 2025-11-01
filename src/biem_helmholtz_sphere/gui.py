@@ -50,7 +50,6 @@ def serve() -> None:
             "torch": torch,
         },
         behavior="radio",
-        value=numpy,
     )
     devicew = pn.widgets.ToggleGroup(name="Device", behavior="radio")
     dtypew = pn.widgets.ToggleGroup(name="Dtype", behavior="radio")
@@ -142,15 +141,23 @@ def serve() -> None:
 
     @pn.depends(backendw.param.value, on_init=True)
     def update_device(xp: ArrayNamespaceFull) -> None:
-        devicew.options = xp.__array_namespace_info__().devices()
-        if devicew.value not in devicew.options:
-            devicew.value = next(iter(devicew.options), None)
+        devices = xp.__array_namespace_info__().devices()
+        devicew.options = devices
+        if devicew.value not in devices:
+            devicew.value = next(iter(devices))
 
     @pn.depends(backendw.param.value, devicew.param.value, on_init=True)
     def update_dtype(xp: ArrayNamespaceFull, device: Any) -> None:
-        dtypew.options = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
-        if dtypew.value not in dtypew.options.values():
-            dtypew.value = next(iter(dtypew.options.values()), None)
+        if device is None:
+            LOG.warning("update_dtype: device is None")
+            return
+        elif device not in xp.__array_namespace_info__().devices():
+            LOG.warning(f"update_dtype: {device=} is not available")
+            return
+        dtypes = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
+        dtypew.options = dtypes
+        if dtypew.value not in dtypes.values():
+            dtypew.value = next(iter(dtypes.values()))
 
     @pn.depends(dw.param.value, ctypew.param.value)
     def update_custom(d: int, ctype: str) -> None:
