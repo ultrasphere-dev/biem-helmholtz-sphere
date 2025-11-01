@@ -146,9 +146,8 @@ def serve() -> None:
         if devicew.value not in devicew.options:
             devicew.value = next(iter(devicew.options), None)
 
-    @pn.depends(devicew.param.value, on_init=True)
-    def update_dtype(device: Any) -> None:
-        xp = backendw.value
+    @pn.depends(backendw.param.value, devicew.param.value, on_init=True)
+    def update_dtype(xp: ArrayNamespaceFull, device: Any) -> None:
         dtypew.options = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
         if dtypew.value not in dtypew.options.values():
             dtypew.value = next(iter(dtypew.options.values()), None)
