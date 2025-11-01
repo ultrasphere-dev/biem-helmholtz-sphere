@@ -97,12 +97,13 @@ def plot_biem(
             [str(x) for x in xp.nonzero(plot_uscateach_)[0]]
         )
     title += r"<br>"
+    k, eta = biem_res.k, biem_res.eta
     title += (
         f"{c.c_ndim:g}D, "
         f"type {c.branching_types_expression_str} coordinates, "
         f"Max Degree={biem_res.n_end - 1:g}, "
-        f"k={complex(biem_res.k) if 'complex' in str(biem_res.k.dtype) else float(biem_res.k):g}, "
-        f"η={float(biem_res.eta):g}"
+        f"k={complex(k) if 'complex' in str(k.dtype) else float(k):g}, "
+        f"η={complex(eta) if 'complex' in str(eta.dtype) else float(eta):g}"
     )
 
     plot_2d = px.imshow(

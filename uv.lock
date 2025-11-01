@@ -199,7 +199,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'cli'", specifier = ">=2.8.0" },
     { name = "typer", specifier = ">=0.15,<1" },
     { name = "types-array-api", specifier = ">=1.1.4" },
-    { name = "ultrasphere-harmonics", specifier = ">=1.2.0" },
+    { name = "ultrasphere-harmonics", specifier = ">=1.3.0" },
 ]
 provides-extras = ["cli"]
 
@@ -502,6 +502,15 @@ wheels = [
 ]
 
 [[package]]
+name = "execnet"
+version = "2.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bb/ff/b4c0dc78fbe20c3e59c0c7334de0c27eb4001a2b2017999af398bf730817/execnet-2.1.1.tar.gz", hash = "sha256:5189b52c6121c24feae288166ab41b32549c7e2348652736540b9e6e7d4e72e3", size = 166524, upload-time = "2024-04-08T09:04:19.245Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/09/2aea36ff60d16dd8879bdb2f5b3ee0ba8d08cbbdcdfe870e695ce3784385/execnet-2.1.1-py3-none-any.whl", hash = "sha256:26dee51f1b80cebd6d0ca8e74dd8745419761d3bef34163928cbebbdc4749fdc", size = 40612, upload-time = "2024-04-08T09:04:17.414Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "3.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -631,7 +640,7 @@ wheels = [
 
 [[package]]
 name = "jacobi-poly"
-version = "1.0.4"
+version = "1.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "array-api-compat" },
@@ -643,9 +652,9 @@ dependencies = [
     { name = "typer" },
     { name = "types-array-api" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/09/1eece5f815215ebc0813de94b54f7eee3a6bb1bdeb10012e1509ce853fca/jacobi_poly-1.0.4.tar.gz", hash = "sha256:8548d56d3d5e29ae40e7ab47624d7da3aba1fd83734f00bdd4a55cafaf62678f", size = 12361, upload-time = "2025-09-14T00:51:41.299Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/96/751eb3c9676092118d2b31902f4abbd9840e030dc7e7be20aac02e0f3336/jacobi_poly-1.0.5.tar.gz", hash = "sha256:a348f608b17ff68ecb48f625b03d3770b62bc3a40dc0ca4b4d85fd41ccd0de4a", size = 12418, upload-time = "2025-11-01T04:34:31.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/71/f795afe5ada537d179d02a8527e25a1088a1fae6b74bd420e6965ed1a9be/jacobi_poly-1.0.4-py3-none-any.whl", hash = "sha256:0a9cb581eacacae7cd77707965b9c9373b9ca48222196a92b35c46e6051a2b49", size = 9115, upload-time = "2025-09-14T00:51:39.859Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/8a/08676e7671e65d51fe02f5c888127e02016ebe285cd6b763ff3e725a46be/jacobi_poly-1.0.5-py3-none-any.whl", hash = "sha256:17bbee2a1af617a3ff59edd778fe17b4042694efed33155a52d2d166219f7d96", size = 9131, upload-time = "2025-11-01T04:34:30.316Z" },
 ]
 
 [[package]]
@@ -1541,6 +1550,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-xdist"
+version = "3.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "execnet" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/b4/439b179d1ff526791eb921115fca8e44e596a13efeda518b9d845a619450/pytest_xdist-3.8.0.tar.gz", hash = "sha256:7e578125ec9bc6050861aa93f2d59f1d8d085595d6551c2c90b6f4fad8d3a9f1", size = 88069, upload-time = "2025-07-01T13:30:59.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/31/d4e37e9e550c2b92a9cbc2e4d0b7420a27224968580b5a447f420847c975/pytest_xdist-3.8.0-py3-none-any.whl", hash = "sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88", size = 46396, upload-time = "2025-07-01T13:30:56.632Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -2125,7 +2147,7 @@ wheels = [
 
 [[package]]
 name = "ultrasphere"
-version = "2.0.2"
+version = "2.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aquarel" },
@@ -2134,20 +2156,21 @@ dependencies = [
     { name = "jacobi-poly" },
     { name = "matplotlib" },
     { name = "networkx" },
+    { name = "pytest-xdist" },
     { name = "rich" },
     { name = "scipy" },
     { name = "strenum" },
     { name = "typer" },
     { name = "types-array-api" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/0b/9ff4543d516a9ac83532846602f7e40f9fba63eeed01ab5983380f25d7e3/ultrasphere-2.0.2.tar.gz", hash = "sha256:0d50056be5d6f3e4575731bf204f00014d663a246c80347170f17681326d0a6a", size = 26582, upload-time = "2025-09-24T04:31:17.461Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/f3/4de10bb786c0cd06cb2b492128b59218de022d9e85b9da24053181ce5124/ultrasphere-2.0.4.tar.gz", hash = "sha256:2ee55ffd9ee6dbae56c395c9dbb5874bef1fd1b5b5381be31a33be84480e1e26", size = 26798, upload-time = "2025-10-31T11:33:50.06Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/83/dacb01b0b6cc747a6fa9a57b84524e25066902827c43f25fb530c3937249/ultrasphere-2.0.2-py3-none-any.whl", hash = "sha256:6bfd4358d36d3a12c0daa337f7393f441b16658bcb43df8edb6123d10af998ad", size = 23566, upload-time = "2025-09-24T04:31:15.925Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/1c/cdeb8820a6c517c4e757c7b6f91ce3a78d2c81c64243715cf4147e8844b0/ultrasphere-2.0.4-py3-none-any.whl", hash = "sha256:7d6521ec107051498fb2fbf64a29691df0f82dd634c5efaa45946d0c0dbb126b", size = 23796, upload-time = "2025-10-31T11:33:48.892Z" },
 ]
 
 [[package]]
 name = "ultrasphere-harmonics"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "array-api-negative-index" },
@@ -2156,9 +2179,9 @@ dependencies = [
     { name = "shift-nth-row-n-steps" },
     { name = "ultrasphere" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/00/f0b9c48f42544ff443bc8a33f9227aa6fe4caf99c256dae7b5c556289e6e/ultrasphere_harmonics-1.2.0.tar.gz", hash = "sha256:f85efb8fdbbf200e1bd8a63e7d0b2c185e8f296ccbd89c22e8a86954170e49b2", size = 37768, upload-time = "2025-10-03T11:34:27.826Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/87/2ca924ea1e678f851430d3ed1dde89ad91a9e3907e76fe218b2f7ce85888/ultrasphere_harmonics-1.3.0.tar.gz", hash = "sha256:723883045d577f0c3068d8331db7e8e047b0a043a003cd7d20ec688e491503f5", size = 38160, upload-time = "2025-11-01T06:32:49.731Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/2c/6fb2c752619da662fe3ac8911e4c207f370dd82e1d71e655d325f66b2f6b/ultrasphere_harmonics-1.2.0-py3-none-any.whl", hash = "sha256:87fdbf20d6204a020270dd9fb49e9003e61124be450fe0c9677993c6c2fa4dfc", size = 35650, upload-time = "2025-10-03T11:34:26.642Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/19/a2f723a60e9ea4629d5cdd598fbc78eb90cca1acfc42c856bfa828f2b71f/ultrasphere_harmonics-1.3.0-py3-none-any.whl", hash = "sha256:b513cd2aea5e45a253df665b8e3f1b6491fc08c65779fe40d89c99a680d3aad3", size = 35934, upload-time = "2025-11-01T06:32:48.354Z" },
 ]
 
 [[package]]

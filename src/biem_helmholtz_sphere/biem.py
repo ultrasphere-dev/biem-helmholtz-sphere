@@ -246,19 +246,18 @@ def _check_biem_inputs[TSpherical, TCartesian](
     /,
 ) -> tuple[Array, Array, Array, Array, Array, Array]:
     xp = array_namespace(centers, radii, k, eta, alpha, beta)
-
+    dtype = centers.dtype
+    dtype_complex = xp.result_type(dtype, xp.complex64)
+    device = centers.device
     # convert to array
-    centers = xp.asarray(centers)
-    radii = xp.asarray(radii)
-    k = xp.asarray(k)
-    alpha = xp.asarray(alpha)
-    beta = xp.asarray(beta)
     if eta is None:
-        eta = xp.asarray(1.0)[(None,) * k.ndim]
+        eta = xp.asarray(1.0, dtype=dtype, device=device)[(None,) * k.ndim]
     else:
-        eta = xp.asarray(eta)
+        eta = xp.asarray(eta, dtype=dtype, device=device)
+    alpha = xp.asarray(alpha, dtype=dtype_complex, device=device)
     if alpha.ndim == 0:
         alpha = alpha[(None,) * (k.ndim + 1)]
+    beta = xp.asarray(beta, dtype=dtype_complex, device=device)
     if beta.ndim == 0:
         beta = beta[(None,) * (k.ndim + 1)]
 
@@ -428,18 +427,22 @@ def point_source(
         ) from e
     if source.ndim != k.ndim + 1:
         raise ValueError(f"{source.ndim=} is not {k.ndim + 1=}")
-    n_ = xp.asarray(n)
+    dtype = source.dtype
+    device = source.device
+    n_ = xp.asarray(n, dtype=dtype, device=device)
 
     def inner(x: Array, /) -> Array:
         x = x - source[(slice(None),) + (None,) * (x.ndim - source.ndim)]
         d = int(x.shape[0])
-        return shn1(n_, xp.asarray(d), k * xp.linalg.vector_norm(x, axis=0))
+        return shn1(
+            n_, xp.asarray(d, dtype=dtype, device=device), k * xp.linalg.vector_norm(x, axis=0)
+        )
 
     def inner_grad(x: Array, /) -> Array:
         x = x - source[(slice(None),) + (None,) * (x.ndim - source.ndim)]
         d = int(x.shape[0])
         r = xp.linalg.vector_norm(x, axis=0)
-        coeff = k * shn1(n_, xp.asarray(d), k * r, derivative=True) / r
+        coeff = k * shn1(n_, xp.asarray(d, dtype=dtype, device=device), k * r, derivative=True) / r
         return coeff[None, ...] * x
 
     return inner, inner_grad
@@ -560,6 +563,8 @@ def biem[TSpherical, TCartesian](
 
     """
     centers, radii, k, eta, alpha, beta = _check_biem_inputs(c, centers, radii, k, eta, alpha, beta)
+    dtype = centers.dtype
+    device = centers.device
     xp = array_namespace(centers, radii, k, eta)
 
     # [..., B, v] -> [v, ..., B]
@@ -568,7 +573,7 @@ def biem[TSpherical, TCartesian](
     # ...(x).ndim
     ndim_first = k.ndim
 
-    d = xp.asarray(c.c_ndim)
+    d = xp.asarray(c.c_ndim, dtype=dtype, device=device)
     n_spheres = radii.shape[-1]
 
     if uin is None and uin_grad is None:
@@ -610,6 +615,8 @@ def biem[TSpherical, TCartesian](
             n=n_end,
             phase=ush.Phase(0),
             xp=xp,
+            dtype=dtype,
+            device=device,
         )
         # (..., B, harm)
         f_expansion = xp.moveaxis(f_expansion, 0, -2)
@@ -624,9 +631,9 @@ def biem[TSpherical, TCartesian](
     if not use_matrix:
         # simply divide by the potential coefficients
         # [harm1, ..., harmN] -> [..., B=1, harm1, ..., harmN]
-        n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True, xp=xp)[
-            (None,) * (ndim_first + 1) + (...,)
-        ]
+        n = ush.index_array_harmonics(
+            c, c.root, n_end=n_end, expand_dims=True, xp=xp, device=device
+        )[(None,) * (ndim_first + 1) + (...,)]
         S_coef = potential_coef(
             n,
             d,
@@ -691,9 +698,9 @@ def biem[TSpherical, TCartesian](
         # (..., B') -> (..., B, B')
         radius_to_add = radii[..., None, :]
         # Not flattened
-        n_to_add = ush.index_array_harmonics(c, c.root, n_end=n_end, xp=xp)[
-            (None,) * (ndim_first + 3) + (slice(None),) * c.s_ndim
-        ]
+        n_to_add = ush.index_array_harmonics(
+            c, c.root, n_end=n_end, xp=xp, dtype=dtype, device=device
+        )[(None,) * (ndim_first + 3) + (slice(None),) * c.s_ndim]
         S_coef = potential_coef(
             n_to_add,
             d,
@@ -842,7 +849,10 @@ def biem_u(
     eta = res.eta
     xp = array_namespace(x, centers, radii, k, eta)
     kind = res.kind
-    d = xp.asarray(c.c_ndim)
+    dtype = centers.dtype
+    dtype_complex = xp.result_type(dtype, xp.complex64)
+    device = centers.device
+    d = xp.asarray(c.c_ndim, dtype=dtype, device=device)
     ndim_first = k.ndim
 
     x = xp.stack([x[i] for i in range(c.c_ndim)], axis=0)
@@ -857,9 +867,9 @@ def biem_u(
     # (...(x), ...(first), B)
     r = spherical["r"]
     # (harm1, ..., harmN) -> (...(x), ...(first), B, harm1, ..., harmN)
-    n = ush.index_array_harmonics(c, c.root, n_end=n_end, expand_dims=True, xp=xp)[
-        (None,) * r.ndim + (...,)
-    ]
+    n = ush.index_array_harmonics(
+        c, c.root, n_end=n_end, expand_dims=True, xp=xp, dtype=dtype, device=device
+    )[(None,) * r.ndim + (...,)]
     # (...(x), ...(first), B, harm1, ..., harmN)
     k_harm = k[(None,) * ndim_x + (...,) + (None,) * (c.s_ndim + 1)]
     y_abs = radii[(None,) * ndim_x + (...,) + (None,) * c.s_ndim]
@@ -883,7 +893,7 @@ def biem_u(
         for_func="solution" if far_field else "harmonics",
         limit=False,
     )
-    SD_coef_ = DL_coef_ - xp.asarray(1j) * eta * SL_coef_
+    SD_coef_ = DL_coef_ - xp.asarray(1j, dtype=dtype_complex, device=device) * eta * SL_coef_
     # (...(x), ...(first), B, harm)
     SD_coef_ = ush.flatten_harmonics(c, SD_coef_, n_end=n_end, include_negative_m=True)
     # (...(first), B, harm)
@@ -927,7 +937,7 @@ def biem_u(
         # (...(x), ...(first))
         uscat = xp.sum(uscat, axis=-1)
     # for 0d case
-    uscat = xp.asarray(uscat)
+    uscat = xp.asarray(uscat, dtype=dtype, device=device)
 
     # fill invalid regions with nan
     if kind == "outer":

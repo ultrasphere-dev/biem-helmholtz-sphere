@@ -25,9 +25,6 @@ def serve() -> None:
     res: BIEMResultCalculator[Any, Any] | None = None
     rescountw = pn.widgets.IntInput(name="Result count", value=0)
     # coordinates
-    backendw = pn.widgets.ToggleGroup(
-        name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
-    )
     dw = pn.widgets.IntSlider(name="Number of dimensions", value=2, start=2, end=7)
     ctypew = pn.widgets.ToggleGroup(
         name="Coordinates",
@@ -44,6 +41,10 @@ def serve() -> None:
     )
 
     # calculation parameters
+    backendw = pn.widgets.ToggleGroup(
+        name="Backend", options=["numpy", "torch"], behavior="radio", value="numpy"
+    )
+    devicew = pn.widgets.ToggleGroup(name="Device", options=["cpu"], value="cpu")
     kindw = pn.widgets.Select(name="Outer/Inner", options=["outer", "inner"])
     k_rew = pn.widgets.FloatInput(name="Wavenumber k (Re)", value=1)
     k_imw = pn.widgets.FloatInput(name="Wavenumber k (Im)", value=0)
@@ -67,6 +68,7 @@ def serve() -> None:
     g_calculation = pn.WidgetBox(
         "## Calculation",
         backendw,
+        devicew,
         kindw,
         k_rew,
         k_imw,
@@ -133,8 +135,10 @@ def serve() -> None:
         nonlocal xp
         if backend == "numpy":
             xp = np
+            devicew.options = ["cpu"]
         elif backend == "torch":
             xp = torch
+            devicew.options = ["cpu"] + [f"cuda:{i}" for i in range(torch.cuda.device_count())]
         else:
             raise ValueError(f"Unknown backend: {backend}")
 
@@ -241,6 +245,7 @@ def serve() -> None:
         n_endw.param.value,
         kindw.param.value,
         backendw.param.value,
+        devicew.param.value,
     )
     def update_sol(
         cstr: str,
@@ -252,6 +257,7 @@ def serve() -> None:
         n_end: int,
         kind: Literal["inner", "outer"],
         _: str,
+        device: str,
     ) -> None:
         nonlocal res
         if k_im != 0:
@@ -268,18 +274,21 @@ def serve() -> None:
             progressw.bar_color = "danger"
             progressw.value = 100
             return
-        uin, uin_grad = plane_wave(k=xp.asarray(k), direction=xp.asarray((1.0,) + (0.0,) * (d - 1)))
+        uin, uin_grad = plane_wave(
+            k=xp.asarray(k, device=device),
+            direction=xp.asarray((1.0,) + (0.0,) * (d - 1), device=device),
+        )
         res = biem(
             c,
             uin=uin,
             uin_grad=uin_grad,
-            k=k,
+            k=xp.asarray(k, device=device),
             n_end=n_end,
-            eta=eta,
-            centers=xp.asarray(radiuscenter[list(range(d))].values),
-            radii=xp.asarray(radiuscenter["radius"]),
-            alpha=xp.asarray(radiuscenter["alpha"]),
-            beta=xp.asarray(radiuscenter["beta"]),
+            eta=xp.asarray(eta, device=device),
+            centers=xp.asarray(radiuscenter[list(range(d))].values, device=device),
+            radii=xp.asarray(radiuscenter["radius"], device=device),
+            alpha=xp.asarray(radiuscenter["alpha"], device=device),
+            beta=xp.asarray(radiuscenter["beta"], device=device),
             kind=kind,
             force_matrix=force_matrix,
         )
@@ -314,7 +323,8 @@ def serve() -> None:
             res,
             plot_uin="uin" in plot_which,
             plot_uscateach=xp.asarray(
-                [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])]
+                [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])],
+                device=devicew.value,
             ),
             xspace=(-r_plot, r_plot, n_plot),
             yspace=(-r_plot, r_plot, n_plot),
