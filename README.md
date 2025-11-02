@@ -44,7 +44,9 @@ Acoustic scattering from multiple n-spheres in NumPy / PyTorch
 
 Install this via pip (or your favourite package manager):
 
-`pip install biem-helmholtz-sphere`
+```shell
+pip install biem-helmholtz-sphere
+```
 
 ## Usage (GUI)
 
@@ -94,6 +96,7 @@ $$
 The following code assumes
 
 $$
+d = 3,
 k = 1,
 u_\text{in} (x) = e^{i k x_0},
 c_0 = (0, 2, 0),
