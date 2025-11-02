@@ -11,7 +11,7 @@ from ultrasphere import create_from_branching_types
 from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
 
-from .gui import serve as serve_plot
+from .gui import servable
 
 app = typer.Typer()
 LOG = getLogger(__name__)
@@ -25,7 +25,7 @@ def _main(verbose: bool = typer.Option(False, "--verbose", "-v")) -> None:
 @app.command()
 def serve() -> None:
     """Serve panel app."""
-    serve_plot()
+    servable().show(port=7860, websocket_origin="*")
 
 
 @app.command()
