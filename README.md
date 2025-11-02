@@ -40,7 +40,9 @@
 
 Acoustic scattering from multiple n-spheres in NumPy / PyTorch
 
-[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://huggingface.co/spaces)
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://huggingface.co/spaces/437aewuh/biem-helmholtz-sphere)
+
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-xl-dark.svg)](https://huggingface.co/spaces/437aewuh/biem-helmholtz-sphere)
 
 ## Installation
 
