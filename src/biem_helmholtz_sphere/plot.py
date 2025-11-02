@@ -208,7 +208,7 @@ def plot_biem_far(
         theta=to_device(theta * 180 / xp.pi, "cpu"),
         title=title,
         labels={
-            "r": "|u<sub>scat</sub>|",
+            "r": "Re u<sub>∞</sub>",
             "theta": "θ (degrees)",
         },
         start_angle=0,
