@@ -36,9 +36,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
           - "3.12"
           - "3.13"
         os:
@@ -55,7 +52,7 @@ jobs:
       - uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d # v7
       - run: uv sync --no-python-downloads
         shell: bash
-      - run: uv run pytest
+      - run: uv run --all-extras pytest
         shell: bash
       - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5
         with:
