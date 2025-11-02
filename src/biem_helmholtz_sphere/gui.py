@@ -384,7 +384,7 @@ def serve() -> None:
                 [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])],
                 device=devicew.value,
             ),
-            n_points=n_plot,
+            n_points=n_plot * int(np.sqrt(n_plot)),
             xaxis=xaxis,
             yaxis=yaxis,
             width=600,

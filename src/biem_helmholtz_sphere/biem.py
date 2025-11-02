@@ -913,20 +913,29 @@ def biem_u(
     )
     if far_field:
         uscatfarcoef = (
-            (-1j) ** n
-            / (1j * k_harm) ** ((d - 1) / 2)
+            1
+            / (1j * k) ** ((d - 1) / 2)
             * xp.exp(
                 1j
-                * k_harm
+                * k
                 * xp.sum(
                     # centers: (v, ...(first), B)
                     # x: (v, ...(x), ...(first), B)
-                    x_[(...,) + (None,) * (c.s_ndim)]
-                    * -centers[(slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim],
+                    x_ * -centers[(slice(None),) + (None,) * ndim_x + (...,)],
                     axis=0,
                 )
             )
         )
+        uscatfarcoef = (-1j) ** ush.index_array_harmonics(
+            c,
+            c.root,
+            n_end=n_end,
+            expand_dims=True,
+            xp=xp,
+            dtype=dtype,
+            device=device,
+            flatten=True,
+        ) * uscatfarcoef[..., None]
         uscatfar = density_ * SD_coef_ * Y * uscatfarcoef
         uscatfar = xp.sum(uscatfar, axis=-1)
         if per_ball:
