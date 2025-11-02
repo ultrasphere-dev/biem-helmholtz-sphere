@@ -62,7 +62,7 @@ def plot_biem(
     yspace_ = yspace or (-1, 1, 100)
     xp = array_namespace(biem_res.centers)
     dtype, device = biem_res.centers.dtype, biem_res.centers.device
-    plot_uscateach_ = xp.asarray(plot_uscateach)
+    plot_uscateach_ = xp.asarray(plot_uscateach, device=device)
     if plot_uscateach_.ndim == 0:
         plot_uscateach_ = plot_uscateach_[None]
 
