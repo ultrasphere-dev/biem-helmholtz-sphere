@@ -117,6 +117,7 @@ def test_match(
         alpha=alpha,
         beta=beta,
     )
+    x = np.asarray(to_device(x, "cpu"))
     uscat_expected = calc_expected(x[0, ...], x[1, ...], x[2, ...])
     uscat_expected = xp.asarray(uscat_expected, device=device, dtype=dtype)
 
