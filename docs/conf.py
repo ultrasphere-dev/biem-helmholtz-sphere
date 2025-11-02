@@ -25,11 +25,17 @@ release = "1.1.1"
 # ones.
 extensions = [
     "myst_parser",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.duration",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx_math_dollar",
 ]
-napoleon_google_docstring = False
+myst_enable_extensions = [
+    "amsmath",
+    "dollarmath",
+]
 
 # The suffix of source filenames.
 source_suffix = [
