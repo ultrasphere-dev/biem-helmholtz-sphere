@@ -21,8 +21,8 @@ from .plot import plot_biem, plot_biem_far
 LOG = getLogger(__name__)
 
 
-def serve() -> None:
-    """Serve panel app."""
+def servable() -> pmui.Page:
+    """Get servable panel app."""
     pn.extension("katex", "mathjax", "plotly")
     res: BIEMResultCalculator[Any, Any] | None = None
     rescountw = pn.widgets.IntInput(name="Result count", value=0)
@@ -408,7 +408,7 @@ def serve() -> None:
         if pn.state.notifications is not None:
             pn.state.notifications.error(f"{ex}")
 
-    pmui.Page(
+    return pmui.Page(
         dark_theme=True,
         title="Acoustic Scattering by Multiple Spheres",
         main=[update_plot],
@@ -432,4 +432,4 @@ def serve() -> None:
             )
         ],
         sidebar_width=510,
-    ).show()
+    ).servable()
