@@ -187,7 +187,7 @@ def plot_biem_far(
     uscateach = biem_res.uscat(cartesian, per_ball=True, far_field=True)
 
     uplot = xp.sum(plot_uscateach_[None, :] * uscateach, axis=-1)
-    uplot_re = xp.real(uplot)
+    uplot_abs = xp.abs(uplot)
 
     # title
     title = "Far Field Scattered by Ball " + ", ".join(
@@ -204,11 +204,11 @@ def plot_biem_far(
         f"<br>backend={xp.__name__}, dtype={dtype}, device={device}"
     )
     plot_polar = px.line_polar(
-        r=to_device(xp.abs(uplot_re), "cpu"),
+        r=to_device(uplot_abs, "cpu"),
         theta=to_device(theta * 180 / xp.pi, "cpu"),
         title=title,
         labels={
-            "r": "Re u<sub>∞</sub>",
+            "r": "|u<sub>∞</sub>|",
             "theta": "θ (degrees)",
         },
         start_angle=0,
