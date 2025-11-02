@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 
 [[package]]
@@ -183,6 +183,7 @@ docs = [
     { name = "myst-parser" },
     { name = "sphinx" },
     { name = "sphinx-autobuild" },
+    { name = "sphinx-math-dollar" },
 ]
 
 [package.metadata]
@@ -218,6 +219,7 @@ docs = [
     { name = "myst-parser", marker = "python_full_version >= '3.11'", specifier = ">=0.16" },
     { name = "sphinx", marker = "python_full_version >= '3.11'", specifier = ">=4" },
     { name = "sphinx-autobuild", marker = "python_full_version >= '3.11'", specifier = ">=2025,<2026" },
+    { name = "sphinx-math-dollar", specifier = ">=1.2.1" },
 ]
 
 [[package]]
@@ -1927,6 +1929,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/98/0b/a866924ded68efec7a1759587a4e478aec7559d8165fac8b2ad1c0e774d6/sphinx_basic_ng-1.0.0b2.tar.gz", hash = "sha256:9ec55a47c90c8c002b5960c57492ec3021f5193cb26cebc2dc4ea226848651c9", size = 20736, upload-time = "2023-07-08T18:40:54.166Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3c/dd/018ce05c532a22007ac58d4f45232514cd9d6dd0ee1dc374e309db830983/sphinx_basic_ng-1.0.0b2-py3-none-any.whl", hash = "sha256:eb09aedbabfb650607e9b4b68c9d240b90b1e1be221d6ad71d61c52e29f7932b", size = 22496, upload-time = "2023-07-08T18:40:52.659Z" },
+]
+
+[[package]]
+name = "sphinx-math-dollar"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/63/9227668066d044b6b6a582f000ade4b9e679978466555710dd2a15f21a3a/sphinx-math-dollar-1.2.1.tar.gz", hash = "sha256:03427240f21fdf23c7b8415289aa1a0e307ac32c198e02f840c59a4b1b0d950c", size = 25758, upload-time = "2022-04-25T21:48:38.71Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/58/f4df1f1cd8a2bd7c5720870fcd1373fbd6de934f74c887bbc40eef9d8328/sphinx_math_dollar-1.2.1-py3-none-any.whl", hash = "sha256:0b1523a4d7023b9020ddf3a9301f651d64427a0f1d802af534a87eaf24fbdf19", size = 8074, upload-time = "2022-04-25T21:48:47.289Z" },
 ]
 
 [[package]]

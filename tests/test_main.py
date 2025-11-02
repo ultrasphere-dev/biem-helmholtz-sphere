@@ -76,6 +76,8 @@ def test_match(
 ) -> None:
     if IS_CI and platform != "linux":
         pytest.skip("gmsh is not available on CI except Linux")
+    if IS_CI and n_spheres >= 3:
+        pytest.skip("Too heavy test for CI")
     dtype_complex = xp.result_type(dtype, xp.complex64)
     k = xp.random.random_uniform(0.5, 2.0, (), device=device, dtype=dtype)
     for _ in range(100):
