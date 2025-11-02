@@ -73,6 +73,7 @@ def test_match(
     device: Any,
     dtype: Any,
 ) -> None:
+    dtype_complex = xp.result_type(dtype, xp.complex64)
     k = xp.random.random_uniform(0.5, 2.0, (), device=device, dtype=dtype)
     for _ in range(100):
         centers = xp.random.random_uniform(-1, 1, (n_spheres, 3), device=device, dtype=dtype)
@@ -119,7 +120,7 @@ def test_match(
     )
     x = np.asarray(to_device(x, "cpu"))
     uscat_expected = calc_expected(x[0, ...], x[1, ...], x[2, ...])
-    uscat_expected = xp.asarray(uscat_expected, device=device, dtype=dtype)
+    uscat_expected = xp.asarray(uscat_expected, device=device, dtype=dtype_complex)
 
     assert (
         xp.mean(xp.astype(xpx.isclose(uscat_actual, uscat_expected, rtol=rtol), xp.float64)) > 0.8
