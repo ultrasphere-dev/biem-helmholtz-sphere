@@ -56,6 +56,56 @@ uvx biem-helmholtz-sphere serve
 
 ## Usage
 
+Boundary Integral Equation Method (BIEM) for the Helmholtz equation.
+
+Let $d \in \mathbb{N} \setminus \lbrace 1 \rbrace$ be the dimension of the space,
+$k$ be the wave number,
+and $\mathbb{S}^{d-1} = \lbrace x \in \mathbb{R}^d \mid \|x\| = 1 \rbrace$
+be a unit sphere in $\mathbb{R}^d$.
+Let $B := {0, ..., }$ be the index set of spheres,
+$c_b \in \mathbb{R}^d$ be the center of sphere $b \in B$,
+and $\rho_b > 0$ be the radius of sphere $b \in B$.
+Assume that the closure of spheres do not overlap, i.e.,
+
+$$
+\forall b, b' \in B, b \neq b', \|c_b - c_b'\| > \rho_b + \rho_b'
+$$
+
+Asuume that $u_\text{in}$ is an incident wave satisfying the Helmholtz equation
+
+$$
+\Delta u_\text{in} + k^2 u_\text{in} = 0
+$$
+
+and scattered wave $u$ satisfies the following:
+
+$$
+\begin{cases}
+\Delta u + k^2 u = 0 \quad &x \in \mathbb{R}^d \setminus \overline{\mathbb{S}^{d-1}} \\
+\alpha u + \beta \nabla u \cdot n_x
+= -\alpha u_\text{in} -\beta \nabla u_\text{in} \cdot n_x \quad
+&x \in \mathbb{S}^{d-1} \\
+\lim_{\|x\| \to \infty} \|x\|^{\frac{d-1}{2}}
+\left( \frac{\partial u}{\partial \|x\|} - i k u \right) = 0 \quad
+&\frac{x}{\|x\|} \in \mathbb{S}^{d-1}
+\end{cases}
+$$
+
+The following code assumes
+
+$$
+k = 1,
+u_\text{in} (x) = e^{i k x_0},
+c_0 = (0, 2, 0),
+c_1 = (0, -2, 0),
+\rho_0 = 1,
+\rho_1 = 1,
+\alpha = 1,
+\beta = 0 \quad \text{(Sound-soft)}
+$$
+
+and computes the scattered wave at $(0, 0, 0)$.
+
 ```python
 >>> from array_api_compat import numpy as xp
 >>> from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave

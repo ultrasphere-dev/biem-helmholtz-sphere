@@ -474,6 +474,13 @@ def biem[TSpherical, TCartesian](
     $k$ be the wave number,
     and $\mathbb{S}^{d-1} = \lbrace x \in \mathbb{R}^d \mid \|x\| = 1 \rbrace$
     be a unit sphere in $\mathbb{R}^d$.
+    Let $B := {0, ..., }$ be the index set of spheres,
+    $c_b \in \mathbb{R}^d$ be the center of sphere $b \in B$,
+    and $\rho_b > 0$ be the radius of sphere $b \in B$.
+    Assume that the closure of spheres do not overlap, i.e.,
+    $$
+    \forall b, b' \in B, b \neq b', \|c_b - c_b'\| > \rho_b + \rho_b'
+    $$
 
     Asuume that $u_\text{in}$ is an incident wave satisfying the Helmholtz equation
 
@@ -495,22 +502,31 @@ def biem[TSpherical, TCartesian](
     \end{cases}
     $$
 
+    Forall $n \in \mathbb{N}_0$,
+    let $\{Y_{n,p}\}_{p \in K(n)}$ be the orthnormal basis of
+    $\mathcal{H}_n (\mathbb{S}^{d-1})$.
+    Then, the scattered wave $u$ can be computed
+    by solving the following linear equation for $\phi_{b',n',p'}$.
+
     $$
     \newcommand\slc{\operatorname{slc}}
     \newcommand\dlc{\operatorname{dlc}}
     \newcommand\blc{\operatorname{blc}}
-    \slc_n (\rho) := i k^{d-2} rho^{d-1} j_n (k rho) \\
-    \dlc_n (\rho) := i k^{d-1} rho^{d-1} j_n' (k rho) \\
-    \blc_n (\rho) := \slc_n (rho) - i \eta \dlc_n (rho) \\
-    A_{bnpb'n'p'} := \blc_{n'} \times \begin{cases}
-    \delta_{n,n'} \delta_{p,p'} (\alpha h^{(1)}_n (k rho_b) + \beta h^{(1)'}_n (k rho_b))
+    \begin{aligned}
+    \slc_n (\rho) &:= i k^{d-2} \rho^{d-1} j_n (k \rho) \\
+    \dlc_n (\rho) &:= i k^{d-1} \rho^{d-1} j_n' (k \rho) \\
+    \blc_n (\rho, \eta) &:= \slc_n (\rho) - i \eta \dlc_n (\rho) \\
+    A_{b,n,p,b',n',p'} &:= \blc_{n'} (\rho_{b'}, \eta) \times \begin{cases}
+    \delta_{n,n'} \delta_{p,p'} (\alpha h^{(1)}_n (k \rho_b) + \beta {h}^{(1)}_n (k \rho_b))
     & b = b' \\
-    (S|R)_{n,p,n',p'} (c_b - c_b') (\alpha j_n (k rho_b) + \beta j'_n (k rho_b))
+    (S|R)_{n',p',n,p} (c_b - c_b') (\alpha j_n (k \rho_b) + \beta j'_n (k \rho_b))
     & b \neq b'
     \end{cases} \\
-    f_{bnp} := - \integral_{\partial B_b} u_{in} (x) Y_{n,p} (\hat{x - c_b}) dx
-    = - \integral_{S^{d-1}} u_{in} (c_b + rho_b y) Y_{n,p} (y) rho_b^{d-1} dy \\
-    \sum_{b',n',p'} A_{bnpb'n'p'} \phi_{b'n'p'} = f_{bnp}
+    f_{b,n,p} &:= - \int_{\partial B_b} u_{in} (x)
+    Y_{n,p} \left(\frac{x - c_b}{\|x - c_b\|}\right) dx
+    = - \int_{\mathbb{S}^{d-1}} u_{in} (\rho_b y + c_b) Y_{n,p} (y) \rho_b^{d-1} dy \\
+    \sum_{b',n',p'} A_{b,n,p,b',n',p'} \phi_{b'n'p'} &= f_{b,n,p}
+    \end{aligned}
     $$
 
     Parameters
