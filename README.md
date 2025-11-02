@@ -62,8 +62,9 @@ uvx biem-helmholtz-sphere serve
 >>> from ultrasphere import create_from_branching_types
 >>> c = create_from_branching_types("ba")
 >>> uin, uin_grad = plane_wave(k=xp.asarray(1.0), direction=xp.asarray((1.0, 0.0, 0.0)))
->>> calc = biem(c, uin=uin, uin_grad=uin_grad, k=xp.asarray(1.0), n_end=3, eta=xp.asarray(1.0), centers=xp.asarray(((0.0, 2.0, 0.0), (0.0, -2.0, 0.0))), radii=xp.asarray((1.0, 1.0)), kind="outer")
->>> calc.uscat(xp.asarray((0.0, 0.0, 0.0)))
+>>> calc = biem(c, uin=uin, uin_grad=uin_grad, k=xp.asarray(1.0), n_end=6, eta=xp.asarray(1.0), centers=xp.asarray(((0.0, 2.0, 0.0), (0.0, -2.0, 0.0))), radii=xp.asarray((1.0, 1.0)), kind="outer")
+>>> complex(xp.round(calc.uscat(xp.asarray((0.0, 0.0, 0.0))), 6))
+(-0.741333-0.669657j)
 ```
 
 ## Contributors ✨
