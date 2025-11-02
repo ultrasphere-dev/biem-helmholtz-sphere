@@ -143,20 +143,17 @@ def serve() -> None:
     def update_device(xp: ArrayNamespaceFull) -> None:
         devices = xp.__array_namespace_info__().devices()
         devicew.options = devices
-        if devicew.value not in devices:
+        if devicew.value is None or devicew.value not in devices:
             devicew.value = next(iter(devices))
 
     @pn.depends(backendw.param.value, devicew.param.value, on_init=True)
     def update_dtype(xp: ArrayNamespaceFull, device: Any) -> None:
-        if device is None:
-            LOG.warning("update_dtype: device is None")
-            return
-        elif device not in xp.__array_namespace_info__().devices():
-            LOG.warning(f"update_dtype: {device=} is not available")
+        if device is None or device not in xp.__array_namespace_info__().devices():
+            LOG.debug(f"update_dtype: {device=} is not available")
             return
         dtypes = xp.__array_namespace_info__().dtypes(device=device, kind="real floating")
         dtypew.options = dtypes
-        if dtypew.value not in dtypes.values():
+        if dtypew.value is None or dtypew.value not in dtypes.values():
             dtypew.value = next(iter(dtypes.values()))
 
     @pn.depends(dw.param.value, ctypew.param.value)
@@ -278,19 +275,17 @@ def serve() -> None:
         device: Any,
         dtype: Any,
     ) -> None:
-        if dtype is None:
-            LOG.warn("dtype is None, skip calculation")
-            return
-        if device not in xp.__array_namespace_info__().devices():
-            LOG.warn(f"{device=} is not available, skip calculation")
+        if device is None or device not in xp.__array_namespace_info__().devices():
+            LOG.debug(f"{device=} is not available, skip calculation")
             return
         if (
-            dtype
+            dtype is None
+            or dtype
             not in xp.__array_namespace_info__()
             .dtypes(device=device, kind="real floating")
             .values()
         ):
-            LOG.warning(f"{dtype=} is not available, skip calculation")
+            LOG.debug(f"{dtype=} is not available, skip calculation")
             return
         dtype_complex = xp.result_type(xp.complex64, dtype)
         nonlocal res
@@ -403,8 +398,8 @@ def serve() -> None:
                     update_axis,
                     update_plot_which,
                     update_sol,
-                    update_device,
                     update_dtype,
+                    update_device,
                 ),
             )
         ],
