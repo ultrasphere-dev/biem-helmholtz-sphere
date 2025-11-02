@@ -392,9 +392,12 @@ def servable() -> pmui.Page:
         )
         plot_2d.update_yaxes(scaleanchor="x", scaleratio=1)
         plot_2d.update_layout(title_x=0.5)
-        plot_2d.write_image("plot.svg")
-        plot_2d.write_image("plot.png", scale=3)
-        plot_2d.write_image("plot.jpg", scale=3)
+        try:
+            plot_2d.write_image("plot.svg")
+            plot_2d.write_image("plot.png", scale=3)
+            plot_2d.write_image("plot.jpg", scale=3)
+        except Exception as e:
+            LOG.warning(f"Failed to export images: {e}")
         progressw.value = 100
         progressw.active = False
         progressw.bar_color = "success"
