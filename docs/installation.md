@@ -7,5 +7,3 @@ The package is published on [PyPI](https://pypi.org/project/biem-helmholtz-spher
 ```bash
 pip install biem-helmholtz-sphere
 ```
-
-Next, see the {ref}`section about usage <usage>` to see how to use it.
