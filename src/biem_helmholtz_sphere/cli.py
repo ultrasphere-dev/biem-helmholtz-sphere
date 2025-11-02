@@ -9,7 +9,6 @@ from tqdm.rich import tqdm_rich
 from ultrasphere import create_from_branching_types
 
 from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave
-from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
 
 from .gui import servable
 
@@ -108,7 +107,10 @@ def jascome_bempp(
     """Numerical examples for JASCOME using Bempp-cl."""
     import numpy as np
 
-    with Path("jascome_bempp_output.csv").open("w") as f:
+    from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
+
+    Path("jascome").mkdir(exist_ok=True)
+    with Path("jascome/jascome_bempp_output.csv").open("w") as f:
         f.write("h,n_elements,uscat\n")
     for h in tqdm_rich((2.0 ** -np.arange(1, int(-np.log2(min_h)) + 1)), position=0):
         calc = bempp_cl_sphere(
@@ -121,7 +123,7 @@ def jascome_bempp(
             radii=(1.0, 1.0),
         )
         uscat = calc(np.asarray((0.0,)), np.asarray((0.0,)), np.asarray((0.0,)))
-        with Path("jascome_bempp_output.csv").open("a") as f:
+        with Path("jascome/jascome_bempp_output.csv").open("a") as f:
             f.write(f"{h},{calc.grid.number_of_elements},{complex(uscat)}\n")  # type: ignore
 
 
@@ -130,7 +132,8 @@ def jascome_clean() -> None:
     """Clean output files for JASCOME examples."""
     import pandas as pd
 
-    df = pd.read_csv("jascome_output.csv")
+    # clean main output
+    df = pd.read_csv("jascome/jascome_output.csv")
     df = df[["branching_types", "n_end", "uscat"]]
     df["dimension"] = df["branching_types"].apply(lambda x: create_from_branching_types(x).c_ndim)
     df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
@@ -140,8 +143,10 @@ def jascome_clean() -> None:
         group = group.drop(columns=["dimension", "n_end"])
         # branching type as column
         group = group.pivot(index="n", columns="branching_types", values="uscat").reset_index()
-        group.to_csv(f"jascome_output_{dim}d.csv", index=False)
-    df = pd.read_csv("jascome_bempp_output.csv")
+        group.to_csv(f"jascome/jascome_output_{dim}d.csv", index=False)
+
+    # clean bempp output
+    df = pd.read_csv("jascome/jascome_bempp_output.csv")
     df = df[["n_elements", "uscat"]]
     df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
-    df.to_csv("jascome_bempp_output_clean.csv", index=False)
+    df.to_csv("jascome/jascome_bempp_output_clean.csv", index=False)
