@@ -8,8 +8,7 @@ from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
 from ultrasphere import create_from_branching_types
 
-from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave
-
+from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
 
 app = typer.Typer()
@@ -107,7 +106,7 @@ def jascome_bempp(
     """Numerical examples for JASCOME using Bempp-cl."""
     import numpy as np
 
-    from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
+    from .bempp_cl_sphere import bempp_cl_sphere
 
     Path("jascome").mkdir(exist_ok=True)
     with Path("jascome/jascome_bempp_output.csv").open("w") as f:
