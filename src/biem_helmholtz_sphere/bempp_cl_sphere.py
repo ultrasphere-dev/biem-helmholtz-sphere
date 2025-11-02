@@ -11,12 +11,6 @@ from bempp_cl.api.operators.potential.helmholtz import single_layer as single_la
 from bempp_cl.api.shapes import sphere
 from numpy.typing import NDArray
 
-centers = [
-    [0.5, 0.0, 0.0],
-    [-0.5, 0.0, 0.0],
-]
-radii = [0.25, 0.25]
-
 
 def bempp_cl_sphere(
     *,
