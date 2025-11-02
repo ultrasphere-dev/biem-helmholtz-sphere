@@ -220,7 +220,7 @@ class BIEMResultCalculator(BIEMResultCalculatorProtocol[TSpherical, TCartesian])
     """The flattened matrix of the BIEM
     of shape (..., B, harm, B', harm')."""
 
-    def uscat(  # noqa: D102
+    def uscat(
         self,
         x: Array,
         /,

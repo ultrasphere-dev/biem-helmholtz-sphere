@@ -46,10 +46,18 @@ Install this via pip (or your favourite package manager):
 
 `pip install biem-helmholtz-sphere`
 
+## Usage (GUI)
+
+![GUI](https://raw.githubusercontent.com/ultrasphere-dev/biem-helmholtz-sphere/main/gui.webp)
+
+```shell
+uvx biem-helmholtz-sphere serve
+```
+
 ## Usage
 
 ```python
-
+from
 ```
 
 ## Contributors ✨

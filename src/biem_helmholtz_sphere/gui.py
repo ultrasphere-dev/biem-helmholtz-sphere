@@ -15,7 +15,7 @@ from ultrasphere import (
     create_standard_prime,
 )
 
-from .biem import BIEMResultCalculator, biem, max_n_end, plane_wave
+from ._biem import BIEMResultCalculator, biem, max_n_end, plane_wave
 from .plot import plot_biem, plot_biem_far
 
 LOG = getLogger(__name__)

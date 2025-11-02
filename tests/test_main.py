@@ -9,8 +9,8 @@ from array_api._2024_12 import ArrayNamespaceFull
 from joblib import Memory
 from ultrasphere import create_from_branching_types
 
+from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
-from biem_helmholtz_sphere.biem import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.plot import plot_biem
 
 memory = Memory("tests/.cache/joblib", verbose=0)

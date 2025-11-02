@@ -8,8 +8,8 @@ from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
 from ultrasphere import create_from_branching_types
 
+from biem_helmholtz_sphere import BIEMResultCalculator, biem, plane_wave
 from biem_helmholtz_sphere.bempp_cl_sphere import bempp_cl_sphere
-from biem_helmholtz_sphere.biem import BIEMResultCalculator, biem, plane_wave
 
 from .gui import serve as serve_plot
 
@@ -64,7 +64,7 @@ def jascome(
                         direction=xp.asarray(
                             (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
                         ),
-                    ),
+                    )[0],
                     k=xp.asarray(1.0, device=device, dtype=dtype),
                     n_end=n_end,
                     eta=xp.asarray(1.0, device=device, dtype=dtype),

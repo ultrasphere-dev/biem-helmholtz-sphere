@@ -6,7 +6,7 @@ import plotly.express as px
 from array_api_compat import array_namespace, to_device
 from plotly.graph_objects import Figure
 
-from .biem import BIEMResultCalculator
+from ._biem import BIEMResultCalculator
 
 
 def plot_biem(
