@@ -128,3 +128,90 @@ def plot_biem(
     plot_2d.update_xaxes(showgrid=False)
     plot_2d.update_yaxes(showgrid=False)
     return plot_2d
+
+
+def plot_biem_far(
+    biem_res: BIEMResultCalculator[Any, Any],
+    /,
+    *,
+    plot_uscateach: bool | Sequence[bool] = True,
+    n_points: int = 100,
+    xaxis: int = 0,
+    yaxis: int = 1,
+    **plot_kwargs: Any,
+) -> Figure:
+    """
+    Plot the far-field results of a BIEM calculation.
+
+    Parameters
+    ----------
+    biem_res : BIEMResult
+        The result of a BIEM calculation.
+    plot_uscateach : bool | Sequence[bool], optional
+        Whether to plot the scattered field for each frequency, by default True
+    n_points : int, optional
+        The number of theta points, by default 100
+    xaxis : int, optional
+        The x-axis index, by default 0
+    yaxis : int, optional
+        The y-axis index, by default 1
+    plot_kwargs : Any, optional
+        Additional arguments to pass to plotly express scatter, by default None
+        See https://plotly.com/python-api-reference/generated/plotly.express.scatter.html
+        for more information.
+
+    Returns
+    -------
+    Figure
+        The plotly figure.
+
+    """
+    xp = array_namespace(biem_res.centers)
+    dtype, device = biem_res.centers.dtype, biem_res.centers.device
+    plot_uscateach_ = xp.asarray(plot_uscateach)
+    if plot_uscateach_.ndim == 0:
+        plot_uscateach_ = plot_uscateach_[None]
+
+    c = biem_res.c
+    theta = xp.arange(n_points, dtype=dtype, device=device) * (2 * xp.pi / n_points)
+    spherical = c.from_cartesian(
+        defaultdict(
+            lambda: xp.zeros((n_points,), dtype=dtype, device=device),
+            {
+                xaxis: xp.cos(theta),
+                yaxis: xp.sin(theta),
+            },
+        )
+    )
+    cartesian = c.to_cartesian(spherical, as_array=True)
+    uscateach = biem_res.uscat(cartesian, per_ball=True, far_field=True)
+
+    uplot = xp.sum(plot_uscateach_[None, :] * uscateach, axis=-1)
+    uplot_re = xp.real(uplot)
+
+    # title
+    title = "Far Field Scattered by Ball " + ", ".join(
+        [str(int(x)) for x in xp.nonzero(plot_uscateach_)[0]]
+    )
+    title += r"<br>"
+    k, eta = biem_res.k, biem_res.eta
+    title += (
+        f"{c.c_ndim:g}D, "
+        f"type {c.branching_types_expression_str} coordinates, "
+        f"Max Degree={biem_res.n_end - 1:g}, "
+        f"k={complex(k) if 'complex' in str(k.dtype) else float(k):g}, "
+        f"η={complex(eta) if 'complex' in str(eta.dtype) else float(eta):g}"
+        f"<br>backend={xp.__name__}, dtype={dtype}, device={device}"
+    )
+    plot_polar = px.line_polar(
+        r=to_device(xp.abs(uplot_re), "cpu"),
+        theta=to_device(theta * 180 / xp.pi, "cpu"),
+        title=title,
+        labels={
+            "r": "|u<sub>scat</sub>|",
+            "theta": "θ (degrees)",
+        },
+        start_angle=0,
+        **plot_kwargs,
+    )
+    return plot_polar

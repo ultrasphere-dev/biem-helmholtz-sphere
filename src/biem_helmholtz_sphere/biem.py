@@ -561,7 +561,6 @@ def biem[TSpherical, TCartesian](
     BIEMResultCalculator
         The function that computes the incident and scattered fields
         at the given spherical coordinates.
-        Each field has shape [...(x), ...(first), harm1, ..., harmN]
 
     """
     centers, radii, k, eta, alpha, beta = _check_biem_inputs(c, centers, radii, k, eta, alpha, beta)
@@ -920,8 +919,8 @@ def biem_u(
                 1j
                 * k_harm
                 * xp.sum(
-                    # centers: [v, ...(first), B]
-                    # x: [v, ...(x), ...(first), B]
+                    # centers: (v, ...(first), B)
+                    # x: (v, ...(x), ...(first), B)
                     x_[(...,) + (None,) * (c.s_ndim)]
                     * -centers[(slice(None),) + (None,) * ndim_x + (...,) + (None,) * c.s_ndim],
                     axis=0,

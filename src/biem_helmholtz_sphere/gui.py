@@ -16,7 +16,7 @@ from ultrasphere import (
 )
 
 from .biem import BIEMResultCalculator, biem, max_n_end, plane_wave
-from .plot import plot_biem
+from .plot import plot_biem, plot_biem_far
 
 LOG = getLogger(__name__)
 
@@ -64,8 +64,10 @@ def serve() -> None:
     radiuscenterw = pn.widgets.Tabulator(
         pd.DataFrame(
             {
-                "alpha": [1.0, 1.0],
-                "beta": [0.0, 0.0],
+                "Re alpha": [1.0, 1.0],
+                "Im alpha": [0.0, 0.0],
+                "Re beta": [0.0, 0.0],
+                "Im beta": [0.0, 0.0],
                 "radius": [1.0, 1.0],
                 0: [0.0, 0.0],
                 1: [2.0, -2.0],
@@ -231,8 +233,10 @@ def serve() -> None:
                 pd.Series(
                     {  # type: ignore
                         "radius": 1.0,
-                        "alpha": 1.0,
-                        "beta": 0.0,
+                        "Re alpha": 1.0,
+                        "Im alpha": 0.0,
+                        "Re beta": 0.0,
+                        "Im beta": 0.0,
                         **dict.fromkeys(range(dw.value), 0.0),
                     },
                     name=len(radiuscenterw.value),
@@ -318,8 +322,16 @@ def serve() -> None:
             eta=xp.asarray(eta, device=device, dtype=dtype),
             centers=xp.asarray(radiuscenter[list(range(d))].values, device=device, dtype=dtype),
             radii=xp.asarray(radiuscenter["radius"], device=device, dtype=dtype),
-            alpha=xp.asarray(radiuscenter["alpha"], device=device, dtype=dtype_complex),
-            beta=xp.asarray(radiuscenter["beta"], device=device, dtype=dtype_complex),
+            alpha=xp.asarray(
+                radiuscenter["Re alpha"] + 1j * radiuscenter["Im alpha"],
+                device=device,
+                dtype=dtype_complex,
+            ),
+            beta=xp.asarray(
+                radiuscenter["Re beta"] + 1j * radiuscenter["Re beta"],
+                device=device,
+                dtype=dtype_complex,
+            ),
             kind=kind,
             force_matrix=force_matrix,
         )
@@ -342,7 +354,7 @@ def serve() -> None:
         xaxis: int,
         yaxis: int,
         _: int,
-    ) -> pn.pane.Pane | None:
+    ) -> pn.Row | None:
         nonlocal res
         xp = backendw.value
         if res is None:
@@ -366,6 +378,18 @@ def serve() -> None:
             width=600,
             height=600,
         )
+        plot_2d_far = plot_biem_far(
+            res,
+            plot_uscateach=xp.asarray(
+                [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])],
+                device=devicew.value,
+            ),
+            n_points=n_plot,
+            xaxis=xaxis,
+            yaxis=yaxis,
+            width=600,
+            height=600,
+        )
         plot_2d.update_yaxes(scaleanchor="x", scaleratio=1)
         plot_2d.update_layout(title_x=0.5)
         plot_2d.write_image("plot.svg")
@@ -374,7 +398,11 @@ def serve() -> None:
         progressw.value = 100
         progressw.active = False
         progressw.bar_color = "success"
-        return pn.pane.Plotly(plot_2d, sizing_mode="stretch_both")
+        return pn.Row(
+            pn.pane.Plotly(plot_2d, sizing_mode="stretch_both"),
+            pn.pane.Plotly(plot_2d_far, sizing_mode="stretch_both"),
+            sizing_mode="stretch_both",
+        )
 
     def exception_handler(ex: Any) -> None:
         if pn.state.notifications is not None:
