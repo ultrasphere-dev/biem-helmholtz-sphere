@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.2 (2025-11-02)
+
+### Bug fixes
+
+- Fix bempp import ([`fdf8e9c`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/fdf8e9c3c9052a2817eaf70e12750d141a94b558))
+
 ## v1.1.1 (2025-11-02)
 
 ### Bug fixes
