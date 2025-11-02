@@ -1,5 +1,6 @@
 from os import environ
 from pathlib import Path
+from sys import platform
 from typing import Any
 
 import array_api_extra as xpx
@@ -73,6 +74,8 @@ def test_match(
     device: Any,
     dtype: Any,
 ) -> None:
+    if IS_CI and platform != "linux":
+        pytest.skip("gmsh is not available on CI except Linux")
     dtype_complex = xp.result_type(dtype, xp.complex64)
     k = xp.random.random_uniform(0.5, 2.0, (), device=device, dtype=dtype)
     for _ in range(100):
