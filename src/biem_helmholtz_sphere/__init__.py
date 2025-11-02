@@ -1,4 +1,4 @@
-__version__ = "1.1.1"
+__version__ = "1.1.2-rc.1"
 from ._biem import (
     BIEMKwargs,
     BIEMResultCalculator,

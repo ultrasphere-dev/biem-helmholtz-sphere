@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.1.2-rc.1 (2025-11-02)
+
+### Documentation
+
+- Fix docs ([`11c4fc9`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/11c4fc9088e7b3db81d8384808c187a45723807e))
+
+### Bug fixes
+
+- Fix bempp import ([`1e0cdda`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/1e0cddacaf187b5d531321e58a395c8d61c46db6))
+- Fix bempp import ([`16c0fb3`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/16c0fb351de25b736e6252765fa0743f77340925))
+- Fix bempp import ([`a42301f`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/a42301fa76dfb2bbe19ddf6c939ac34a7d3d274d))
+
 ## v1.1.1 (2025-11-02)
 
 ### Bug fixes
