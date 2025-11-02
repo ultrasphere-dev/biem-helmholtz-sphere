@@ -203,6 +203,7 @@ def plot_biem_far(
         f"η={complex(eta) if 'complex' in str(eta.dtype) else float(eta):g}"
         f"<br>backend={xp.__name__}, dtype={dtype}, device={device}"
     )
+    print(uplot_abs)
     plot_polar = px.line_polar(
         r=to_device(uplot_abs, "cpu"),
         theta=to_device(theta * 180 / xp.pi, "cpu"),

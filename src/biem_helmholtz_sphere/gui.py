@@ -64,10 +64,10 @@ def serve() -> None:
     radiuscenterw = pn.widgets.Tabulator(
         pd.DataFrame(
             {
-                "Re alpha": [1.0, 1.0],
-                "Im alpha": [0.0, 0.0],
-                "Re beta": [0.0, 0.0],
-                "Im beta": [0.0, 0.0],
+                "Re α": [1.0, 1.0],
+                "Im α": [0.0, 0.0],
+                "Re β": [0.0, 0.0],
+                "Im β": [0.0, 0.0],
                 "radius": [1.0, 1.0],
                 0: [0.0, 0.0],
                 1: [2.0, -2.0],
@@ -233,10 +233,10 @@ def serve() -> None:
                 pd.Series(
                     {  # type: ignore
                         "radius": 1.0,
-                        "Re alpha": 1.0,
-                        "Im alpha": 0.0,
-                        "Re beta": 0.0,
-                        "Im beta": 0.0,
+                        "Re α": 1.0,
+                        "Im α": 0.0,
+                        "Re β": 0.0,
+                        "Im β": 0.0,
                         **dict.fromkeys(range(dw.value), 0.0),
                     },
                     name=len(radiuscenterw.value),
@@ -323,12 +323,12 @@ def serve() -> None:
             centers=xp.asarray(radiuscenter[list(range(d))].values, device=device, dtype=dtype),
             radii=xp.asarray(radiuscenter["radius"], device=device, dtype=dtype),
             alpha=xp.asarray(
-                radiuscenter["Re alpha"] + 1j * radiuscenter["Im alpha"],
+                radiuscenter["Re α"] + 1j * radiuscenter["Im α"],
                 device=device,
                 dtype=dtype_complex,
             ),
             beta=xp.asarray(
-                radiuscenter["Re beta"] + 1j * radiuscenter["Re beta"],
+                radiuscenter["Re β"] + 1j * radiuscenter["Im β"],
                 device=device,
                 dtype=dtype_complex,
             ),
@@ -384,7 +384,7 @@ def serve() -> None:
                 [f"uscat{i}" in plot_which for i in range(res.radii.shape[-1])],
                 device=devicew.value,
             ),
-            n_points=n_plot * int(np.sqrt(n_plot)),
+            n_points=n_plot * 2,
             xaxis=xaxis,
             yaxis=yaxis,
             width=600,
