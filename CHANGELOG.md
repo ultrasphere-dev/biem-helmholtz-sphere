@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.3-rc.1 (2025-11-02)
+
+### Bug fixes
+
+- Support environments kalido do not work ([`08ca735`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/08ca7354b41f81e661646dfe9679b3e424cd4fad))
+
 ## v1.1.2 (2025-11-02)
 
 ### Bug fixes
