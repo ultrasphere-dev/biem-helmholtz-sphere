@@ -190,7 +190,7 @@ def plot_biem_far(
     uplot_abs = xp.abs(uplot)
 
     # title
-    title = "Far Field Scattered by Ball " + ", ".join(
+    title = "Far Field Pattern by Ball " + ", ".join(
         [str(int(x)) for x in xp.nonzero(plot_uscateach_)[0]]
     )
     title += r"<br>"
