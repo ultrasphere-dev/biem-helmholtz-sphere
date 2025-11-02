@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.1 (2025-11-02)
+
+### Bug fixes
+
+- Fix serve ([`212a046`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/212a04668e94d1e2a7142de01c5a74901136af41))
+
 ## v1.1.0 (2025-11-02)
 
 ### Features
