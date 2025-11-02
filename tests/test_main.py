@@ -6,6 +6,7 @@ import array_api_extra as xpx
 import numpy as np
 import pytest
 from array_api._2024_12 import ArrayNamespaceFull
+from array_api_compat import to_device
 from joblib import Memory
 from ultrasphere import create_from_branching_types
 
@@ -22,7 +23,7 @@ IS_CI = environ.get("CI") in ("true", "1", "yes")
 def test_biem(xp: ArrayNamespaceFull, branching_types: str, device: Any, dtype: Any) -> None:
     c = create_from_branching_types(branching_types)
     uin, uin_grad = plane_wave(
-        k=xp.asarray(1.0),
+        k=xp.asarray(1.0, device=device, dtype=dtype),
         direction=xp.asarray((1.0,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype),
     )
     calc: BIEMResultCalculator[Any, Any] = biem(
@@ -111,8 +112,8 @@ def test_match(
     calc_expected = bempp_cl_sphere(
         k=float(k),
         h=h,
-        centers=np.asarray(centers),
-        radii=np.asarray(radii),
+        centers=np.asarray(to_device(centers, "cpu")),
+        radii=np.asarray(to_device(radii, "cpu")),
         alpha=alpha,
         beta=beta,
     )
