@@ -2,11 +2,12 @@ from logging import DEBUG, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
 
+import networkx as nx
 import typer
 from array_api._2024_12 import ArrayNamespaceFull
 from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
-from ultrasphere import create_from_branching_types
+from ultrasphere import SphericalCoordinates, create_from_branching_types
 
 from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
@@ -55,6 +56,11 @@ def jascome(
         try:
             for n_end in tqdm_rich(list(range(1, 10)), position=1, leave=False):
                 c = create_from_branching_types(btype)
+                if "p" in btype:
+                    # swap 0 and -1
+                    G = c.G
+                    G = nx.relabel_nodes(G, {0: c.c_ndim - 1, c.c_ndim - 1: 0})
+                    c = SphericalCoordinates(G)
                 calc: BIEMResultCalculator[Any, Any] = biem(
                     c,
                     uin=plane_wave(
