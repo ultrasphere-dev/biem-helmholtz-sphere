@@ -5,9 +5,10 @@ from typing import Any, Literal
 import networkx as nx
 import typer
 from array_api._2024_12 import ArrayNamespaceFull
+from matplotlib import pyplot as plt
 from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
-from ultrasphere import SphericalCoordinates, create_from_branching_types
+from ultrasphere import SphericalCoordinates, create_from_branching_types, draw
 
 from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
@@ -61,6 +62,9 @@ def jascome(
                     G = c.G
                     G = nx.relabel_nodes(G, {0: c.c_ndim - 1, c.c_ndim - 1: 0})
                     c = SphericalCoordinates(G)
+                fig, ax = plt.subplots()
+                draw(c, ax=ax)
+                fig.savefig(f"{btype}.svg")
                 calc: BIEMResultCalculator[Any, Any] = biem(
                     c,
                     uin=plane_wave(
