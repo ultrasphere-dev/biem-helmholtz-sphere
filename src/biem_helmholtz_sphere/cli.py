@@ -65,6 +65,7 @@ def jascome(
                 fig, ax = plt.subplots()
                 draw(c, ax=ax)
                 fig.savefig(f"{btype}.svg")
+                plt.close(fig)
                 calc: BIEMResultCalculator[Any, Any] = biem(
                     c,
                     uin=plane_wave(
@@ -97,7 +98,7 @@ def jascome(
                     translational_coefficients_method="triplet",
                 )
                 uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
-                with Path("jascome_output.csv").open("a") as f:
+                with Path("jascome/jascome_output.csv").open("a") as f:
                     f.write(
                         f"{btype},{n_end},{complex(uscat)},"
                         f"{device},{dtype},"
