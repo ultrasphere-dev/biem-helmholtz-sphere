@@ -2,11 +2,13 @@ from logging import DEBUG, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
 
+import networkx as nx
 import typer
 from array_api._2024_12 import ArrayNamespaceFull
+from matplotlib import pyplot as plt
 from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
-from ultrasphere import create_from_branching_types
+from ultrasphere import SphericalCoordinates, create_from_branching_types, draw
 
 from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
@@ -55,6 +57,15 @@ def jascome(
         try:
             for n_end in tqdm_rich(list(range(1, 10)), position=1, leave=False):
                 c = create_from_branching_types(btype)
+                if "p" in btype:
+                    # swap 0 and -1
+                    G = c.G
+                    G = nx.relabel_nodes(G, {0: c.c_ndim - 1, c.c_ndim - 1: 0})
+                    c = SphericalCoordinates(G)
+                fig, ax = plt.subplots()
+                draw(c, ax=ax)
+                fig.savefig(f"{btype}.svg")
+                plt.close(fig)
                 calc: BIEMResultCalculator[Any, Any] = biem(
                     c,
                     uin=plane_wave(
@@ -87,7 +98,7 @@ def jascome(
                     translational_coefficients_method="triplet",
                 )
                 uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
-                with Path("jascome_output.csv").open("a") as f:
+                with Path("jascome/jascome_output.csv").open("a") as f:
                     f.write(
                         f"{btype},{n_end},{complex(uscat)},"
                         f"{device},{dtype},"
