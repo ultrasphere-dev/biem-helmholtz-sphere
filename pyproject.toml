@@ -47,6 +47,7 @@ cli = [
     "plotly>=6.3.1",
     "psutil>=7.1.2",
     "torch>=2.8.0",
+    "ultrasphere[plot]>=2.0.4",
 ]
 
 [dependency-groups]
