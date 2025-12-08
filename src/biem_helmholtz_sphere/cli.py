@@ -1,3 +1,4 @@
+import warnings
 from logging import DEBUG, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
@@ -15,6 +16,7 @@ from ultrasphere import SphericalCoordinates, create_from_branching_types, draw
 from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
 
+warnings.filterwarnings("ignore", module="matplotlib.*")
 app = typer.Typer()
 LOG = getLogger(__name__)
 
@@ -192,11 +194,11 @@ def accuracy(
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
     for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
-        try:
-            for n_end in tqdm_rich(
-                np.unique((2 ** np.arange(0, 10, 0.25)).astype(int)), position=1, leave=False
-            ):
-                for k in 2 ** np.arange(0, 10, 0.5):
+        for k in tqdm_rich(2 ** np.arange(0, 10, 0.5), position=1, leave=False):
+            try:
+                for n_end in tqdm_rich(
+                    np.unique((2 ** np.arange(0, 10, 0.25)).astype(int)), position=2, leave=False
+                ):
                     c = create_from_branching_types(btype)
                     calc: BIEMResultCalculator[Any, Any] = biem(
                         c,
@@ -236,15 +238,15 @@ def accuracy(
                             f"{calc.density.dtype},{calc.density.device},"  # type: ignore
                             f"{uscat.dtype},{uscat.device}\n"
                         )
-        except Exception as e:
-            LOG.error(e)
-            continue
+            except Exception as e:
+                LOG.error(e)
+                continue
 
 
 @app.command()
 def plot_accuracy(
     format: str = "jpg",
-    theme: str = "boxy_dark",
+    theme: str = "none",
 ) -> None:
     """Plot accuracy results."""
     theme_ = None
@@ -258,13 +260,13 @@ def plot_accuracy(
     from matplotlib.colors import LogNorm
 
     Path("accuracy").mkdir(exist_ok=True)
-    df = pd.read_csv("accuracy/accuracy.csv")
+    df = pd.read_csv("accuracy/accuracy.csv", na_values=["(nan+nanj)"])
+
     for btype, group in df.groupby("branching_types"):
         ground_truth = {}
         for k, subgroup in group.groupby("k"):
-            ground_truth[k] = subgroup.at[
-                subgroup[pd.notna(subgroup["uscat"])]["n_end"].idxmax(), "uscat"
-            ]
+            subgroup_notna = subgroup[pd.notna(subgroup["uscat"])]
+            ground_truth[k] = subgroup_notna.iloc[-1]["uscat"]
         group["error"] = group.apply(
             lambda row, ground_truth=ground_truth: abs(
                 complex(row["uscat"]) - complex(ground_truth[row["k"]])
@@ -289,3 +291,4 @@ def plot_accuracy(
         )
         fig.savefig(f"accuracy/accuracy_heatmap_{btype}.png", dpi=300)
         plt.close(fig)
+        print(ground_truth)
