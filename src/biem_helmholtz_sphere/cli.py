@@ -170,7 +170,7 @@ def accuracy(
     backend: Literal["numpy", "torch"] = "numpy",
     device: str = "cpu",
     dtype: str = "float64",
-    branching_types: str = "a,ba",
+    branching_types: str = "a",
 ) -> None:
     """Numerical examples for JASCOME."""
     branchin_types = branching_types.split(",")
@@ -193,8 +193,10 @@ def accuracy(
         )
     for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
         try:
-            for n_end in tqdm_rich(list(range(1, 40)), position=1, leave=False):
-                for k in 2 ** np.arange(0, 5, 0.5):
+            for n_end in tqdm_rich(
+                np.unique((2 ** np.arange(0, 10, 0.25)).astype(int)), position=1, leave=False
+            ):
+                for k in 2 ** np.arange(0, 10, 0.5):
                     c = create_from_branching_types(btype)
                     calc: BIEMResultCalculator[Any, Any] = biem(
                         c,
@@ -269,7 +271,7 @@ def plot_accuracy(
             ),
             axis=1,
         )
-        fig, ax = plt.subplots(figsize=(10, 10))
+        fig, ax = plt.subplots(figsize=(10, 3 + 0.2 * len(group["n_end"].unique())))
         ax.grid(False)
         error = group.pivot(index="n_end", columns="k", values="error")
         sns.heatmap(
