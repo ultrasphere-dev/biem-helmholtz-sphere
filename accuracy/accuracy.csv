@@ -1,4 +1,4 @@
-branching_types,n_end,k,uscat,device,dtype,density_dtype,density_device,uscat_dtype,uscat_device
+branching_types,n_end,uscat,k,device,dtype,density_dtype,density_device,uscat_dtype,uscat_device
 ba,1,(-0.7212634674645428-1.035771016852753j),1.0,cpu,<class 'numpy.float64'>,complex128,cpu,complex128,cpu
 ba,1,(0.011666133124824831-1.0705684302374094j),1.4142135623730951,cpu,<class 'numpy.float64'>,complex128,cpu,complex128,cpu
 ba,1,(0.39834771205124425-0.8084194211098266j),2.0,cpu,<class 'numpy.float64'>,complex128,cpu,complex128,cpu

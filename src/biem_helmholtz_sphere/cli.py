@@ -5,6 +5,7 @@ from typing import Any, Literal
 import networkx as nx
 import numpy as np
 import typer
+from aquarel import load_theme
 from array_api._2024_12 import ArrayNamespaceFull
 from matplotlib import pyplot as plt
 from rich.logging import RichHandler
@@ -169,7 +170,7 @@ def accuracy(
     backend: Literal["numpy", "torch"] = "numpy",
     device: str = "cpu",
     dtype: str = "float64",
-    branching_types: str = "a",
+    branching_types: str = "a,ba",
 ) -> None:
     """Numerical examples for JASCOME."""
     branchin_types = branching_types.split(",")
@@ -192,7 +193,7 @@ def accuracy(
         )
     for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
         try:
-            for n_end in tqdm_rich(list(range(1, 20)), position=1, leave=False):
+            for n_end in tqdm_rich(list(range(1, 40)), position=1, leave=False):
                 for k in 2 ** np.arange(0, 5, 0.5):
                     c = create_from_branching_types(btype)
                     calc: BIEMResultCalculator[Any, Any] = biem(
@@ -228,7 +229,7 @@ def accuracy(
                     uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
                     with Path("accuracy/accuracy.csv").open("a") as f:
                         f.write(
-                            f"{btype},{n_end},{complex(uscat)},{k},"
+                            f"{btype},{n_end},{k},{complex(uscat)},"
                             f"{device},{dtype},"
                             f"{calc.density.dtype},{calc.density.device},"  # type: ignore
                             f"{uscat.dtype},{uscat.device}\n"
@@ -236,3 +237,53 @@ def accuracy(
         except Exception as e:
             LOG.error(e)
             continue
+
+
+@app.command()
+def plot_accuracy(
+    format: str = "jpg",
+    theme: str = "boxy_dark",
+) -> None:
+    """Plot accuracy results."""
+    theme_ = None
+    if theme != "none":
+        theme_ = load_theme(theme).set_overrides(
+            {"ytick.minor.visible": False, "xtick.minor.visible": False}
+        )
+        theme_.apply()
+    import pandas as pd
+    import seaborn as sns
+    from matplotlib.colors import LogNorm
+
+    Path("accuracy").mkdir(exist_ok=True)
+    df = pd.read_csv("accuracy/accuracy.csv")
+    for btype, group in df.groupby("branching_types"):
+        ground_truth = {}
+        for k, subgroup in group.groupby("k"):
+            ground_truth[k] = subgroup.at[
+                subgroup[pd.notna(subgroup["uscat"])]["n_end"].idxmax(), "uscat"
+            ]
+        group["error"] = group.apply(
+            lambda row, ground_truth=ground_truth: abs(
+                complex(row["uscat"]) - complex(ground_truth[row["k"]])
+            ),
+            axis=1,
+        )
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.grid(False)
+        error = group.pivot(index="n_end", columns="k", values="error")
+        sns.heatmap(
+            error,
+            xticklabels=error.columns.round(2),
+            ax=ax,
+            norm=LogNorm(),
+            cmap="viridis",
+            annot=True,
+            annot_kws={"fontsize": 8},
+        )
+        ax.set_title(
+            "Approximated Absolute Error of the Scattered Wave "
+            f"at Origin for type {btype} coordinates"
+        )
+        fig.savefig(f"accuracy/accuracy_heatmap_{btype}.png", dpi=300)
+        plt.close(fig)

@@ -41,6 +41,7 @@ scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 
 [project.optional-dependencies]
 cli = [
+    "aquarel>=0.0.7",
     "kaleido>=1.1.0",
     "pandas>=2.3.3",
     "panel>=1.8.1",
