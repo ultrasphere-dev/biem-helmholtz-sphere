@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import networkx as nx
+import numpy as np
 import typer
 from array_api._2024_12 import ArrayNamespaceFull
 from matplotlib import pyplot as plt
@@ -48,7 +49,8 @@ def jascome(
         dtype = xp.float32
     else:
         raise ValueError(f"Unsupported dtype: {dtype}")
-    with Path("jascome_output.csv").open("w") as f:
+    Path("jascome").mkdir(exist_ok=True)
+    with Path("jascome/jascome_output.csv").open("w") as f:
         f.write(
             "branching_types,n_end,uscat,device,dtype,"
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
@@ -160,3 +162,77 @@ def jascome_clean() -> None:
     df = df[["n_elements", "uscat"]]
     df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
     df.to_csv("jascome/jascome_bempp_output_clean.csv", index=False)
+
+
+@app.command()
+def accuracy(
+    backend: Literal["numpy", "torch"] = "numpy",
+    device: str = "cpu",
+    dtype: str = "float64",
+    branching_types: str = "a",
+) -> None:
+    """Numerical examples for JASCOME."""
+    branchin_types = branching_types.split(",")
+    xp: ArrayNamespaceFull
+    if backend == "numpy":
+        from array_api_compat import numpy as xp  # type: ignore
+    elif backend == "torch":
+        from array_api_compat import torch as xp  # type: ignore
+    if "float64" in dtype or "complex128" in dtype:
+        dtype = xp.float64
+    elif "float32" in dtype or "complex64" in dtype:
+        dtype = xp.float32
+    else:
+        raise ValueError(f"Unsupported dtype: {dtype}")
+    Path("accuracy").mkdir(exist_ok=True)
+    with Path("accuracy/accuracy.csv").open("w") as f:
+        f.write(
+            "branching_types,n_end,k,uscat,device,dtype,"
+            "density_dtype,density_device,uscat_dtype,uscat_device\n"
+        )
+    for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
+        try:
+            for n_end in tqdm_rich(list(range(1, 20)), position=1, leave=False):
+                for k in 2 ** np.arange(0, 5, 0.5):
+                    c = create_from_branching_types(btype)
+                    calc: BIEMResultCalculator[Any, Any] = biem(
+                        c,
+                        uin=plane_wave(
+                            k=xp.asarray(1.0, device=device, dtype=dtype),
+                            direction=xp.asarray(
+                                (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
+                            ),
+                        )[0],
+                        k=xp.asarray(k, device=device, dtype=dtype),
+                        n_end=n_end,
+                        eta=xp.asarray(1.0, device=device, dtype=dtype),
+                        centers=xp.asarray(
+                            (
+                                (
+                                    0.0,
+                                    2.0,
+                                )
+                                + (0.0,) * (c.c_ndim - 2),
+                                (
+                                    0.0,
+                                    -2.0,
+                                )
+                                + (0.0,) * (c.c_ndim - 2),
+                            ),
+                            device=device,
+                            dtype=dtype,
+                        ),
+                        radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
+                        kind="outer",
+                    )
+                    uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
+                    with Path("accuracy/accuracy.csv").open("a") as f:
+                        f.write(
+                            f"{btype},{n_end},{complex(uscat)},{k},"
+                            f"{device},{dtype},"
+                            f"{calc.density.dtype},{calc.density.device},"  # type: ignore
+                            f"{uscat.dtype},{uscat.device}\n"
+                        )
+        except Exception as e:
+            LOG.error(e)
+            continue
