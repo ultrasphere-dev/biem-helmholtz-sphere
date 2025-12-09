@@ -166,6 +166,24 @@ def jascome_clean() -> None:
     df.to_csv("jascome/jascome_bempp_output_clean.csv", index=False)
 
 
+def _center(n_balls_sqrt2div2: int, c_ndim: int) -> np.ndarray:
+    if n_balls_sqrt2div2 == 0:
+        centers = np.zeros_like((2, c_ndim))
+        centers[0, 1] = 2.0
+        centers[1, 1] = -2.0
+        return centers
+    else:
+        x0, x1 = np.meshgrid(
+            np.arange(-n_balls_sqrt2div2, n_balls_sqrt2div2) * 4 + 2,
+            np.arange(-n_balls_sqrt2div2, n_balls_sqrt2div2) * 4 + 2,
+            indexing="ij",
+        )
+        centers = np.stack(
+            [x0.ravel(), x1.ravel()] + [np.zeros_like(x0.ravel())] * (c_ndim - 2), axis=-1
+        )
+        return centers
+
+
 @app.command()
 def accuracy(
     backend: Literal["numpy", "torch"] = "numpy",
@@ -188,61 +206,68 @@ def accuracy(
     Path("accuracy").mkdir(exist_ok=True)
     with Path("accuracy/accuracy.csv").open("w") as f:
         f.write(
-            "branching_types,n_end,k,uscat,device,dtype,"
+            "branching_types,n_end,k,n_balls,uscat,device,dtype,"
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
     for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
-        for k in tqdm_rich(2 ** np.arange(0, 15, 0.5), position=1, leave=False):
-            try:
-                for n_end in tqdm_rich(
-                    np.unique((2 ** np.arange(0, 15, 0.25)).astype(int)), position=2, leave=False
-                ):
-                    c = create_from_branching_types(btype)
-                    calc: BIEMResultCalculator[Any, Any] = biem(
-                        c,
-                        uin=plane_wave(
-                            k=xp.asarray(1.0, device=device, dtype=dtype),
-                            direction=xp.asarray(
-                                (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
+        n_balls_pbar = tqdm_rich(range(7), position=1, leave=False)
+        for n_balls_log2div2 in n_balls_pbar:
+            for k in tqdm_rich(
+                (2 ** np.arange(0, 15, 0.5)) if n_balls_log2div2 == 0 else 1,
+                position=2,
+                leave=False,
+            ):
+                try:
+                    for n_end in tqdm_rich(
+                        np.unique((2 ** np.arange(0, 15, 0.25)).astype(int)),
+                        position=3,
+                        leave=False,
+                    ):
+                        c = create_from_branching_types(btype)
+                        centers = _center(
+                            n_balls_sqrt2div2=(
+                                0 if n_balls_log2div2 == 0 else 2 ** (n_balls_log2div2 - 1)
                             ),
-                        )[0],
-                        k=xp.asarray(k, device=device, dtype=dtype),
-                        n_end=n_end,
-                        eta=xp.asarray(1.0, device=device, dtype=dtype),
-                        centers=xp.asarray(
-                            (
-                                (
-                                    0.0,
-                                    2.0,
-                                )
-                                + (0.0,) * (c.c_ndim - 2),
-                                (
-                                    0.0,
-                                    -2.0,
-                                )
-                                + (0.0,) * (c.c_ndim - 2),
-                            ),
-                            device=device,
-                            dtype=dtype,
-                        ),
-                        radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
-                        kind="outer",
-                    )
-                    if xp.any(xp.isnan(calc.density)):
-                        raise ValueError("Density contains NaN")
-                    uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
-                    if xp.isnan(uscat):
-                        raise ValueError("uscat is NaN")
-                    with Path("accuracy/accuracy.csv").open("a") as f:
-                        f.write(
-                            f"{btype},{n_end},{k},{complex(uscat)},"
-                            f"{device},{dtype},"
-                            f"{calc.density.dtype},{calc.density.device},"  # type: ignore
-                            f"{uscat.dtype},{uscat.device}\n"
+                            c_ndim=c.c_ndim,
                         )
-            except Exception as e:
-                LOG.error(e)
-                continue
+                        n_balls = len(centers)
+                        n_balls_pbar.set_description(f"{n_balls} balls")
+                        calc: BIEMResultCalculator[Any, Any] = biem(
+                            c,
+                            uin=plane_wave(
+                                k=xp.asarray(1.0, device=device, dtype=dtype),
+                                direction=xp.asarray(
+                                    (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
+                                ),
+                            )[0],
+                            k=xp.asarray(k, device=device, dtype=dtype),
+                            n_end=n_end,
+                            eta=xp.asarray(1.0, device=device, dtype=dtype),
+                            centers=xp.asarray(
+                                centers,
+                                device=device,
+                                dtype=dtype,
+                            ),
+                            radii=xp.asarray((1.0,) * n_balls, device=device, dtype=dtype),
+                            kind="outer",
+                        )
+                        if xp.any(xp.isnan(calc.density)):
+                            raise ValueError("Density contains NaN")
+                        uscat = calc.uscat(
+                            xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype)
+                        )
+                        if xp.isnan(uscat):
+                            raise ValueError("uscat is NaN")
+                        with Path("accuracy/accuracy.csv").open("a") as f:
+                            f.write(
+                                f"{btype},{n_end},{k},{n_balls},{complex(uscat)},"
+                                f"{device},{dtype},"
+                                f"{calc.density.dtype},{calc.density.device},"  # type: ignore
+                                f"{uscat.dtype},{uscat.device}\n"
+                            )
+                except Exception as e:
+                    LOG.error(e)
+                    continue
 
 
 @app.command()
