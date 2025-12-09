@@ -40,7 +40,6 @@ def jascome(
     branching_types: str = "a,ba,bpa,bba,bpbpa,caa",
 ) -> None:
     """Numerical examples for JASCOME."""
-    branchin_types = branching_types.split(",")
     xp: ArrayNamespaceFull
     if backend == "numpy":
         from array_api_compat import numpy as xp  # type: ignore
@@ -58,7 +57,7 @@ def jascome(
             "branching_types,n_end,uscat,device,dtype,"
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
-    for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
+    for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
         try:
             for n_end in tqdm_rich(list(range(1, 10)), position=1, leave=False):
                 c = create_from_branching_types(btype)
@@ -175,7 +174,6 @@ def accuracy(
     branching_types: str = "a",
 ) -> None:
     """Numerical examples for JASCOME."""
-    branchin_types = branching_types.split(",")
     xp: ArrayNamespaceFull
     if backend == "numpy":
         from array_api_compat import numpy as xp  # type: ignore
@@ -193,11 +191,11 @@ def accuracy(
             "branching_types,n_end,k,uscat,device,dtype,"
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
-    for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
-        for k in tqdm_rich(2 ** np.arange(0, 10, 0.5), position=1, leave=False):
+    for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
+        for k in tqdm_rich(2 ** np.arange(0, 15, 0.5), position=1, leave=False):
             try:
                 for n_end in tqdm_rich(
-                    np.unique((2 ** np.arange(0, 10, 0.25)).astype(int)), position=2, leave=False
+                    np.unique((2 ** np.arange(0, 15, 0.25)).astype(int)), position=2, leave=False
                 ):
                     c = create_from_branching_types(btype)
                     calc: BIEMResultCalculator[Any, Any] = biem(
@@ -230,7 +228,11 @@ def accuracy(
                         radii=xp.asarray((1.0, 1.0), device=device, dtype=dtype),
                         kind="outer",
                     )
+                    if xp.any(xp.isnan(calc.density)):
+                        raise ValueError("Density contains NaN")
                     uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
+                    if xp.isnan(uscat):
+                        raise ValueError("uscat is NaN")
                     with Path("accuracy/accuracy.csv").open("a") as f:
                         f.write(
                             f"{btype},{n_end},{k},{complex(uscat)},"
@@ -246,7 +248,7 @@ def accuracy(
 @app.command()
 def plot_accuracy(
     format: str = "jpg",
-    theme: str = "none",
+    theme: str = "boxy_dark",
 ) -> None:
     """Plot accuracy results."""
     theme_ = None
@@ -281,7 +283,6 @@ def plot_accuracy(
             xticklabels=error.columns.round(2),
             ax=ax,
             norm=LogNorm(),
-            cmap="viridis",
             annot=True,
             annot_kws={"fontsize": 8},
         )
@@ -289,6 +290,6 @@ def plot_accuracy(
             "Approximated Absolute Error of the Scattered Wave "
             f"at Origin for type {btype} coordinates"
         )
-        fig.savefig(f"accuracy/accuracy_heatmap_{btype}.png", dpi=300)
+        fig.tight_layout()
+        fig.savefig(f"accuracy/accuracy_heatmap_{btype}.{format}", dpi=300)
         plt.close(fig)
-        print(ground_truth)
