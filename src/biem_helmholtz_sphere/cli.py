@@ -168,7 +168,7 @@ def jascome_clean() -> None:
 
 def _center(n_balls_sqrt2div2: int, c_ndim: int) -> np.ndarray:
     if n_balls_sqrt2div2 == 0:
-        centers = np.zeros_like((2, c_ndim))
+        centers = np.zeros((2, c_ndim))
         centers[0, 1] = 2.0
         centers[1, 1] = -2.0
         return centers
@@ -210,10 +210,10 @@ def accuracy(
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
     for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
-        n_balls_pbar = tqdm_rich(range(7), position=1, leave=False)
+        n_balls_pbar = tqdm_rich(range(1, 7), position=1, leave=False)
         for n_balls_log2div2 in n_balls_pbar:
             for k in tqdm_rich(
-                (2 ** np.arange(0, 15, 0.5)) if n_balls_log2div2 == 0 else 1,
+                (2 ** np.arange(0, 15, 0.5)) if n_balls_log2div2 == 0 else (1,),
                 position=2,
                 leave=False,
             ):
@@ -287,34 +287,46 @@ def plot_accuracy(
     from matplotlib.colors import LogNorm
 
     Path("accuracy").mkdir(exist_ok=True)
-    df = pd.read_csv("accuracy/accuracy.csv", na_values=["(nan+nanj)"])
-
-    for btype, group in df.groupby("branching_types"):
-        ground_truth = {}
-        for k, subgroup in group.groupby("k"):
-            subgroup_notna = subgroup[pd.notna(subgroup["uscat"])]
-            ground_truth[k] = subgroup_notna.iloc[-1]["uscat"]
-        group["error"] = group.apply(
-            lambda row, ground_truth=ground_truth: abs(
-                complex(row["uscat"]) - complex(ground_truth[row["k"]])
-            ),
-            axis=1,
-        )
-        fig, ax = plt.subplots(figsize=(10, 3 + 0.2 * len(group["n_end"].unique())))
-        ax.grid(False)
-        error = group.pivot(index="n_end", columns="k", values="error")
-        sns.heatmap(
-            error,
-            xticklabels=error.columns.round(2),
-            ax=ax,
-            norm=LogNorm(),
-            annot=True,
-            annot_kws={"fontsize": 8},
-        )
-        ax.set_title(
-            "Approximated Absolute Error of the Scattered Wave "
-            f"at Origin for type {btype} coordinates"
-        )
-        fig.tight_layout()
-        fig.savefig(f"accuracy/accuracy_heatmap_{btype}.{format}", dpi=300)
-        plt.close(fig)
+    df = pd.concat(
+        [
+            pd.read_csv(path.absolute(), na_values=["(nan+nanj)"])
+            for path in Path("accuracy").glob("accuracy_*.csv")
+        ]
+    )
+    df["n_balls"] = df["n_balls"].fillna(2)
+    df.drop_duplicates(inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    keys = {"k", "n_balls"}
+    for key in keys:
+        notkey = next(iter(keys - {key}))
+        dfkey = df[df[notkey] == df.groupby(notkey).count().idxmax().iloc[0]]
+        for btype, group in dfkey.groupby("branching_types"):
+            ground_truth = {}
+            for k, subgroup in group.groupby(key):
+                subgroup_notna = subgroup[pd.notna(subgroup["uscat"])]
+                subgroup_notna = subgroup_notna.sort_values("n_end")
+                ground_truth[k] = subgroup_notna.iloc[-1]["uscat"]
+            group["error"] = group.apply(
+                lambda row, ground_truth=ground_truth, key=key: abs(
+                    complex(row["uscat"]) - complex(ground_truth[row[key]])
+                ),
+                axis=1,
+            )
+            fig, ax = plt.subplots(figsize=(10, 3 + 0.2 * len(group["n_end"].unique())))
+            ax.grid(False)
+            error = group.pivot(index="n_end", columns=key, values="error")
+            sns.heatmap(
+                error,
+                xticklabels=error.columns.round(2),
+                ax=ax,
+                norm=LogNorm(),
+                annot=True,
+                annot_kws={"fontsize": 8},
+            )
+            ax.set_title(
+                "Approximated Absolute Error of the Scattered Wave "
+                f"at Origin for type {btype} coordinates"
+            )
+            fig.tight_layout()
+            fig.savefig(f"accuracy/accuracy_heatmap_{key}_{btype}.{format}", dpi=300)
+            plt.close(fig)
