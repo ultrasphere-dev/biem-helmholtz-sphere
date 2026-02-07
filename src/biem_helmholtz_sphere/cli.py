@@ -1,5 +1,5 @@
 import warnings
-from logging import DEBUG, WARNING, basicConfig, getLogger
+from logging import DEBUG, ERROR, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
 
@@ -24,6 +24,7 @@ LOG = getLogger(__name__)
 @app.callback()
 def _main(verbose: bool = typer.Option(False, "--verbose", "-v")) -> None:
     basicConfig(handlers=[RichHandler(rich_tracebacks=True)], level=DEBUG if verbose else WARNING)
+    getLogger("matplotlib").setLevel(ERROR)
 
 
 @app.command()
@@ -312,9 +313,9 @@ def plot_accuracy(
                 ),
                 axis=1,
             )
-            fig, ax = plt.subplots(figsize=(10, 3 + 0.2 * len(group["n_end"].unique())))
-            ax.grid(False)
             error = group.pivot(index="n_end", columns=key, values="error")
+            fig, ax = plt.subplots(figsize=(1.2 + 0.8 * error.shape[1], 0.8 + 0.2 * error.shape[0]))
+            ax.grid(False)
             sns.heatmap(
                 error,
                 xticklabels=error.columns.round(2),

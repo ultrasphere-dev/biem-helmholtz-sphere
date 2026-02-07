@@ -124,6 +124,35 @@ and computes the scattered wave at $(0, 0, 0)$.
 (-0.741333-0.669657j)
 ```
 
+## Accuracy
+
+- The radius of spheres is fixed to `1.0`.
+- The incident wave is $u_\text{in} (x) = e^{i k x_0}$.
+- For `n_balls == 2`, spheres are centered at `(0, 2, 0, ...)` and `(0, -2, 0, ...)`.
+- For `n_balls == 4, ...`, spheres are placed in 2D grid pattern with distance of `4.0` between adjacent spheres.
+
+### vs Wavenumber `k`
+
+#### 2D
+
+![k vs error 2D](https://raw.githubusercontent.com/ultrasphere-dev/biem-helmholtz-sphere/main/accuracy/accuracy_heatmap_k_a.jpg)
+
+#### 3D
+
+![k vs error 3D](https://raw.githubusercontent.com/ultrasphere-dev/biem-helmholtz-sphere/main/accuracy/accuracy_heatmap_k_ba.jpg)
+
+### vs Number of Spheres `n_balls`
+
+#### 2D
+
+![n_balls vs error 2D](https://raw.githubusercontent.com/ultrasphere-dev/biem-helmholtz-sphere/main/accuracy/accuracy_heatmap_n_balls_a.jpg)
+
+## Citation
+
+Consider citing the following paper if you use this package in your research:
+
+- [doi.org/10.60443/jascome.25.0_143](https://doi.org/10.60443/jascome.25.0_143)
+
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
