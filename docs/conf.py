@@ -15,7 +15,7 @@ from sphinx.ext import apidoc
 project = "biem-helmholtz-sphere"
 copyright = "2025, ultrasphere-dev"
 author = "ultrasphere-dev"
-release = "1.1.3"
+release = "1.2.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.2.0 (2026-02-07)
+
+### Bug fixes
+
+- Fix jascome ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Fix jascome ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Fix jascome ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Fix jascome ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Fix jascome ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+
+### Features
+
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+- Add cli for accuracy ([`01bd25b`](https://github.com/ultrasphere-dev/biem-helmholtz-sphere/commit/01bd25b2593b0695a902fdd37fa61436f6ea417f))
+
 ## v1.1.3 (2025-11-02)
 
 ### Bug fixes
