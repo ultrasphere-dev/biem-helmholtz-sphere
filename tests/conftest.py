@@ -21,7 +21,10 @@ def xp(request: pytest.FixtureRequest) -> ArrayNamespaceFull:
         xp.random.random_uniform = random_uniform
         xp.random.integers = integers
     elif backend == "torch":
-        from array_api_compat import torch as xp
+        try:
+            from array_api_compat import torch as xp
+        except ImportError:
+            pytest.skip("torch is not available")
 
         xp.random.manual_seed(0)
 
