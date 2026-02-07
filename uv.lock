@@ -176,6 +176,7 @@ cli = [
 dev = [
     { name = "bempp-cl" },
     { name = "joblib" },
+    { name = "kaleido" },
     { name = "plotly" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -215,6 +216,7 @@ provides-extras = ["cli"]
 dev = [
     { name = "bempp-cl", specifier = ">=0.4.2" },
     { name = "joblib", specifier = ">=1.5.2" },
+    { name = "kaleido", specifier = ">=1.1.0" },
     { name = "plotly", specifier = ">=6.3.1" },
     { name = "pytest", specifier = ">=9,<10" },
     { name = "pytest-cov", specifier = ">=7,<8" },
