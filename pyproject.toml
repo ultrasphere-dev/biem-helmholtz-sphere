@@ -55,6 +55,7 @@ cli = [
 dev = [
   "bempp-cl>=0.4.2",
   "joblib>=1.5.2",
+  "plotly>=6.3.1",
   "pytest>=9,<10",
   "pytest-cov>=7,<8",
   "sybil>=9.2.0",
