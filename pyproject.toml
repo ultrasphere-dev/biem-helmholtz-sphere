@@ -41,18 +41,22 @@ scripts.biem-helmholtz-sphere = "biem_helmholtz_sphere.cli:app"
 
 [project.optional-dependencies]
 cli = [
+    "aquarel>=0.0.7",
     "kaleido>=1.1.0",
     "pandas>=2.3.3",
     "panel>=1.8.1",
     "plotly>=6.3.1",
     "psutil>=7.1.2",
     "torch>=2.8.0",
+    "ultrasphere[plot]>=2.0.4",
 ]
 
 [dependency-groups]
 dev = [
   "bempp-cl>=0.4.2",
   "joblib>=1.5.2",
+  "kaleido>=1.1.0",
+  "plotly>=6.3.1",
   "pytest>=9,<10",
   "pytest-cov>=7,<8",
   "sybil>=9.2.0",

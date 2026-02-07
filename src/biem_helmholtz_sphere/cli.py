@@ -1,16 +1,22 @@
-from logging import DEBUG, WARNING, basicConfig, getLogger
+import warnings
+from logging import DEBUG, ERROR, WARNING, basicConfig, getLogger
 from pathlib import Path
 from typing import Any, Literal
 
+import networkx as nx
+import numpy as np
 import typer
+from aquarel import load_theme
 from array_api._2024_12 import ArrayNamespaceFull
+from matplotlib import pyplot as plt
 from rich.logging import RichHandler
 from tqdm.rich import tqdm_rich
-from ultrasphere import create_from_branching_types
+from ultrasphere import SphericalCoordinates, create_from_branching_types, draw
 
 from ._biem import BIEMResultCalculator, biem, plane_wave
 from .gui import servable
 
+warnings.filterwarnings("ignore", module="matplotlib.*")
 app = typer.Typer()
 LOG = getLogger(__name__)
 
@@ -18,6 +24,7 @@ LOG = getLogger(__name__)
 @app.callback()
 def _main(verbose: bool = typer.Option(False, "--verbose", "-v")) -> None:
     basicConfig(handlers=[RichHandler(rich_tracebacks=True)], level=DEBUG if verbose else WARNING)
+    getLogger("matplotlib").setLevel(ERROR)
 
 
 @app.command()
@@ -34,7 +41,6 @@ def jascome(
     branching_types: str = "a,ba,bpa,bba,bpbpa,caa",
 ) -> None:
     """Numerical examples for JASCOME."""
-    branchin_types = branching_types.split(",")
     xp: ArrayNamespaceFull
     if backend == "numpy":
         from array_api_compat import numpy as xp  # type: ignore
@@ -46,15 +52,25 @@ def jascome(
         dtype = xp.float32
     else:
         raise ValueError(f"Unsupported dtype: {dtype}")
-    with Path("jascome_output.csv").open("w") as f:
+    Path("jascome").mkdir(exist_ok=True)
+    with Path("jascome/jascome_output.csv").open("w") as f:
         f.write(
             "branching_types,n_end,uscat,device,dtype,"
             "density_dtype,density_device,uscat_dtype,uscat_device\n"
         )
-    for btype in tqdm_rich(list(reversed(branchin_types)), position=0):
+    for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
         try:
             for n_end in tqdm_rich(list(range(1, 10)), position=1, leave=False):
                 c = create_from_branching_types(btype)
+                if "p" in btype:
+                    # swap 0 and -1
+                    G = c.G
+                    G = nx.relabel_nodes(G, {0: c.c_ndim - 1, c.c_ndim - 1: 0})
+                    c = SphericalCoordinates(G)
+                fig, ax = plt.subplots()
+                draw(c, ax=ax)
+                fig.savefig(f"{btype}.svg")
+                plt.close(fig)
                 calc: BIEMResultCalculator[Any, Any] = biem(
                     c,
                     uin=plane_wave(
@@ -87,7 +103,7 @@ def jascome(
                     translational_coefficients_method="triplet",
                 )
                 uscat = calc.uscat(xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype))
-                with Path("jascome_output.csv").open("a") as f:
+                with Path("jascome/jascome_output.csv").open("a") as f:
                     f.write(
                         f"{btype},{n_end},{complex(uscat)},"
                         f"{device},{dtype},"
@@ -149,3 +165,169 @@ def jascome_clean() -> None:
     df = df[["n_elements", "uscat"]]
     df["uscat"] = df["uscat"].apply(lambda x: f"{complex(x):+8f}").str.replace("j", "i")
     df.to_csv("jascome/jascome_bempp_output_clean.csv", index=False)
+
+
+def _center(n_balls_sqrt2div2: int, c_ndim: int) -> np.ndarray:
+    if n_balls_sqrt2div2 == 0:
+        centers = np.zeros((2, c_ndim))
+        centers[0, 1] = 2.0
+        centers[1, 1] = -2.0
+        return centers
+    else:
+        x0, x1 = np.meshgrid(
+            np.arange(-n_balls_sqrt2div2, n_balls_sqrt2div2) * 4 + 2,
+            np.arange(-n_balls_sqrt2div2, n_balls_sqrt2div2) * 4 + 2,
+            indexing="ij",
+        )
+        centers = np.stack(
+            [x0.ravel(), x1.ravel()] + [np.zeros_like(x0.ravel())] * (c_ndim - 2), axis=-1
+        )
+        return centers
+
+
+@app.command()
+def accuracy(
+    backend: Literal["numpy", "torch"] = "numpy",
+    device: str = "cpu",
+    dtype: str = "float64",
+    branching_types: str = "a",
+) -> None:
+    """Numerical examples for JASCOME."""
+    xp: ArrayNamespaceFull
+    if backend == "numpy":
+        from array_api_compat import numpy as xp  # type: ignore
+    elif backend == "torch":
+        from array_api_compat import torch as xp  # type: ignore
+    if "float64" in dtype or "complex128" in dtype:
+        dtype = xp.float64
+    elif "float32" in dtype or "complex64" in dtype:
+        dtype = xp.float32
+    else:
+        raise ValueError(f"Unsupported dtype: {dtype}")
+    Path("accuracy").mkdir(exist_ok=True)
+    with Path("accuracy/accuracy.csv").open("w") as f:
+        f.write(
+            "branching_types,n_end,k,n_balls,uscat,device,dtype,"
+            "density_dtype,density_device,uscat_dtype,uscat_device\n"
+        )
+    for btype in tqdm_rich(list(reversed(branching_types.split(","))), position=0):
+        n_balls_pbar = tqdm_rich(range(1, 7), position=1, leave=False)
+        for n_balls_log2div2 in n_balls_pbar:
+            for k in tqdm_rich(
+                (2 ** np.arange(0, 15, 0.5)) if n_balls_log2div2 == 0 else (1,),
+                position=2,
+                leave=False,
+            ):
+                try:
+                    for n_end in tqdm_rich(
+                        np.unique((2 ** np.arange(0, 15, 0.25)).astype(int)),
+                        position=3,
+                        leave=False,
+                    ):
+                        c = create_from_branching_types(btype)
+                        centers = _center(
+                            n_balls_sqrt2div2=(
+                                0 if n_balls_log2div2 == 0 else 2 ** (n_balls_log2div2 - 1)
+                            ),
+                            c_ndim=c.c_ndim,
+                        )
+                        n_balls = len(centers)
+                        n_balls_pbar.set_description(f"{n_balls} balls")
+                        calc: BIEMResultCalculator[Any, Any] = biem(
+                            c,
+                            uin=plane_wave(
+                                k=xp.asarray(1.0, device=device, dtype=dtype),
+                                direction=xp.asarray(
+                                    (1,) + (0.0,) * (c.c_ndim - 1), device=device, dtype=dtype
+                                ),
+                            )[0],
+                            k=xp.asarray(k, device=device, dtype=dtype),
+                            n_end=n_end,
+                            eta=xp.asarray(1.0, device=device, dtype=dtype),
+                            centers=xp.asarray(
+                                centers,
+                                device=device,
+                                dtype=dtype,
+                            ),
+                            radii=xp.asarray((1.0,) * n_balls, device=device, dtype=dtype),
+                            kind="outer",
+                        )
+                        if xp.any(xp.isnan(calc.density)):
+                            raise ValueError("Density contains NaN")
+                        uscat = calc.uscat(
+                            xp.asarray((0.0,) * c.c_ndim, device=device, dtype=dtype)
+                        )
+                        if xp.isnan(uscat):
+                            raise ValueError("uscat is NaN")
+                        with Path("accuracy/accuracy.csv").open("a") as f:
+                            f.write(
+                                f"{btype},{n_end},{k},{n_balls},{complex(uscat)},"
+                                f"{device},{dtype},"
+                                f"{calc.density.dtype},{calc.density.device},"  # type: ignore
+                                f"{uscat.dtype},{uscat.device}\n"
+                            )
+                except Exception as e:
+                    LOG.error(e)
+                    continue
+
+
+@app.command()
+def plot_accuracy(
+    format: str = "jpg",
+    theme: str = "boxy_dark",
+) -> None:
+    """Plot accuracy results."""
+    theme_ = None
+    if theme != "none":
+        theme_ = load_theme(theme).set_overrides(
+            {"ytick.minor.visible": False, "xtick.minor.visible": False}
+        )
+        theme_.apply()
+    import pandas as pd
+    import seaborn as sns
+    from matplotlib.colors import LogNorm
+
+    Path("accuracy").mkdir(exist_ok=True)
+    df = pd.concat(
+        [
+            pd.read_csv(path.absolute(), na_values=["(nan+nanj)"])
+            for path in Path("accuracy").glob("accuracy_*.csv")
+        ]
+    )
+    df["n_balls"] = df["n_balls"].fillna(2)
+    df.drop_duplicates(inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    keys = {"k", "n_balls"}
+    for key in keys:
+        notkey = next(iter(keys - {key}))
+        dfkey = df[df[notkey] == df.groupby(notkey).count().idxmax().iloc[0]]
+        for btype, group in dfkey.groupby("branching_types"):
+            ground_truth = {}
+            for k, subgroup in group.groupby(key):
+                subgroup_notna = subgroup[pd.notna(subgroup["uscat"])]
+                subgroup_notna = subgroup_notna.sort_values("n_end")
+                ground_truth[k] = subgroup_notna.iloc[-1]["uscat"]
+            group["error"] = group.apply(
+                lambda row, ground_truth=ground_truth, key=key: abs(
+                    complex(row["uscat"]) - complex(ground_truth[row[key]])
+                ),
+                axis=1,
+            )
+            error = group.pivot(index="n_end", columns=key, values="error")
+            fig, ax = plt.subplots(figsize=(1.2 + 0.8 * error.shape[1], 0.8 + 0.2 * error.shape[0]))
+            ax.grid(False)
+            sns.heatmap(
+                error,
+                xticklabels=error.columns.round(2),
+                ax=ax,
+                norm=LogNorm(),
+                annot=True,
+                annot_kws={"fontsize": 8},
+            )
+            ax.set_title(
+                "Approximated Absolute Error of the Scattered Wave "
+                f"at Origin for type {btype} coordinates"
+            )
+            fig.tight_layout()
+            fig.savefig(f"accuracy/accuracy_heatmap_{key}_{btype}.{format}", dpi=300)
+            plt.close(fig)

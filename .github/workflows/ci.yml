@@ -57,7 +57,7 @@ jobs:
           sudo apt install -y gmsh
       - run: uv sync --no-python-downloads
         shell: bash
-      - run: uv run --all-extras pytest
+      - run: uv run pytest
         shell: bash
       - uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
         with:
